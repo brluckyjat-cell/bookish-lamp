@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Cafe - Admin & Kitchen Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #12100e; color: #f5f2eb; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes pulseBorder {
+            0%, 100% { border-color: rgba(245, 158, 11, 0.4); }
+            50% { border-color: rgba(245, 158, 11, 1); }
+        }
+        .order-card-new { animation: pulseBorder 1.5s infinite ease-in-out; }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-6 pb-20">
+
+    <!-- HEADER -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-stone-800">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-amber-500 text-stone-950 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-500/20">
+                ☕
+            </div>
+            <div>
+                <h1 class="text-xl font-black tracking-tight text-white">Demo Cafe — Admin Dashboard</h1>
+                <p class="text-xs text-stone-400 font-medium">Kitchen Display & Counter Manager</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <button onclick="testAlarm()" class="px-3.5 py-2 bg-stone-800 hover:bg-stone-700 text-amber-400 border border-stone-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+                <span>🔊</span> Test Alarm Siren
+            </button>
+            <button onclick="clearAllData()" class="px-3.5 py-2 bg-stone-900 hover:bg-red-950 text-red-400 border border-red-900/50 rounded-xl text-xs font-bold transition-all">
+                Reset All Data
+            </button>
+        </div>
+    </header>
+
+    <!-- STATS COUNTER BAR -->
+    <section class="grid grid-cols-2 sm:grid-cols-4 gap-3.5 my-6">
+        <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+            <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Active Orders</span>
+            <div id="statActiveCount" class="text-2xl font-black text-amber-400 mt-1">0</div>
+        </div>
+        <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+            <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Total Sales Today</span>
+            <div id="statTotalSales" class="text-2xl font-black text-emerald-400 mt-1">₹0</div>
+        </div>
+        <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+            <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Waiter Call Alerts</span>
+            <div id="statWaiterCalls" class="text-2xl font-black text-red-400 mt-1">0</div>
+        </div>
+        <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+            <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Completed Orders</span>
+            <div id="statCompletedCount" class="text-2xl font-black text-stone-300 mt-1">0</div>
+        </div>
+    </section>
+
+    <!-- WAITER ALERTS CONTAINER -->
+    <div id="waiterAlertsBox" class="space-y-2 mb-6 hidden">
+        <!-- Dynamic Waiter Call Cards injected here -->
+    </div>
+
+    <!-- MAIN ORDERS SECTION -->
+    <main>
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-base font-extrabold text-stone-200">Live Kitchen & Counter Orders</h2>
+            <span class="text-xs text-stone-500 font-medium">Syncing automatically in real-time</span>
+        </div>
+
+        <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Dynamic Order Cards will appear here -->
+        </div>
+
+        <div id="emptyOrdersState" class="text-center py-20 text-stone-500 space-y-2">
+            <div class="text-4xl">☕</div>
+            <p class="text-xs font-bold">No active orders right now.</p>
+            <p class="text-[11px] text-stone-600">New customer orders will appear here automatically with a loud alarm!</p>
+        </div>
+    </main>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        let adminOrders = [];
+        let waiterCalls = [];
+        let totalSales = 0;
+        let completedCount = 0;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminData();
+            // Listen to real-time storage changes from customer menu (index.html)
+            window.addEventListener('storage', (e) => {
+                loadAdminData();
+                playSirenSound();
+            });
+        });
+
+        function loadAdminData() {
+            adminOrders = [];
+            waiterCalls = [];
+            totalSales = 0;
+            completedCount = 0;
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                
+                // Read Cart Data / Orders from local storage
+                if (key.startsWith('demoCafeCart_Table_')) {
+                    const tableNo = key.replace('demoCafeCart_Table_', '');
+                    const cartData = JSON.parse(localStorage.getItem(key));
+                    const isPlaced = localStorage.getItem(`demoCafeOrderPlaced_${tableNo}`) === 'true';
+
+                    if (isPlaced && Object.keys(cartData).length > 0) {
+                        let itemsList = [];
+                        let orderTotal = 0;
+
+                        for (let k in cartData) {
+                            const item = cartData[k];
+                            orderTotal += item.finalPrice * item.qty;
+                            itemsList.push({
+                                name: item.name,
+                                qty: item.qty,
+                                price: item.finalPrice,
+                                addons: item.addons || []
+                            });
+                        }
+
+                        adminOrders.push({
+                            tableNo: tableNo,
+                            orderId: `#DC-${tableNo}-` + (100 + parseInt(tableNo) * 7),
+                            items: itemsList,
+                            total: orderTotal,
+                            status: localStorage.getItem(`adminStatus_Table_${tableNo}`) || 'NEW ORDER'
+                        });
+
+                        totalSales += orderTotal;
+                    }
+                }
+            }
+
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            const grid = document.getElementById('ordersGrid');
+            const emptyState = document.getElementById('emptyOrdersState');
+            grid.innerHTML = '';
+
+            document.getElementById('statActiveCount').innerText = adminOrders.length;
+            document.getElementById('statTotalSales').innerText = `₹${totalSales}`;
+            document.getElementById('statCompletedCount').innerText = completedCount;
+
+            if (adminOrders.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            adminOrders.forEach(order => {
+                let itemsHTML = '';
+                order.items.forEach(it => {
+                    const addonText = it.addons.length > 0 ? `<p class="text-[10px] text-amber-400/80 pl-2">Addons: ${it.addons.join(', ')}</p>` : '';
+                    itemsHTML += `
+                        <div class="py-1.5 border-b border-stone-800 text-xs">
+                            <div class="flex justify-between font-bold text-stone-200">
+                                <span>${it.qty}x ${it.name}</span>
+                                <span class="text-stone-400">₹${it.price * it.qty}</span>
+                            </div>
+                            ${addonText}
+                        </div>
+                    `;
+                });
+
+                let statusBadgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+                if(order.status === 'PREPARING') statusBadgeColor = 'bg-blue-500/10 text-blue-400 border-blue-500/30';
+                if(order.status === 'PAID') statusBadgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+
+                grid.innerHTML += `
+                    <div class="bg-stone-900 border border-stone-800 p-5 rounded-3xl shadow-xl space-y-4 order-card-new">
+                        <div class="flex justify-between items-center border-b border-stone-800 pb-3">
+                            <div>
+                                <span class="text-xs font-black bg-amber-500 text-stone-950 px-3 py-1 rounded-full uppercase tracking-wider">TABLE #${order.tableNo}</span>
+                                <p class="text-[11px] text-stone-500 font-bold mt-1.5">${order.orderId}</p>
+                            </div>
+                            <span class="text-[10px] font-extrabold border px-2.5 py-1 rounded-full uppercase tracking-wider ${statusBadgeColor}">${order.status}</span>
+                        </div>
+
+                        <div class="space-y-1">
+                            ${itemsHTML}
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t border-stone-800 font-black text-sm">
+                            <span class="text-stone-400 text-xs font-bold">Total Bill:</span>
+                            <span class="text-amber-400 text-base">₹${order.total}</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button onclick="updateOrderStatus('${order.tableNo}', 'PREPARING')" class="py-2.5 bg-stone-800 hover:bg-stone-700 text-amber-400 text-xs font-bold rounded-xl transition-all">
+                                👨‍🍳 Preparing
+                            </button>
+                            <button onclick="markOrderPaid('${order.tableNo}')" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow transition-all">
+                                🟢 Mark Paid
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateOrderStatus(tableNo, status) {
+            localStorage.setItem(`adminStatus_Table_${tableNo}`, status);
+            loadAdminData();
+        }
+
+        function markOrderPaid(tableNo) {
+            localStorage.removeItem(`demoCafeCart_Table_${tableNo}`);
+            localStorage.removeItem(`demoCafeOrderPlaced_${tableNo}`);
+            localStorage.removeItem(`adminStatus_Table_${tableNo}`);
+            completedCount++;
+            loadAdminData();
+        }
+
+        function clearAllData() {
+            if(confirm("Are you sure you want to clear all active orders?")) {
+                localStorage.clear();
+                loadAdminData();
+            }
+        }
+
+        // AUDIO SIREN SYSTEM FOR NEW ORDERS
+        function playSirenSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.3);
+                
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            } catch(e){}
+        }
+
+        function testAlarm() {
+            playSirenSound();
+        }
+    </script>
+</body>
+</html>
