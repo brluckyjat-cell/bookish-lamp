@@ -131,7 +131,7 @@
         </div>
 
         <!-- HEADER & NAVIGATION -->
-        <header class="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-stone-800/80">
+        <header class="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border border-stone-800/80">
             <div class="flex items-center gap-3.5">
                 <div class="w-12 h-12 bg-gradient-to-tr from-amber-500 to-amber-400 text-stone-950 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-500/20">
                     ☕
@@ -147,48 +147,56 @@
                 </div>
             </div>
             
-            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button onclick="switchTab('orders')" id="tabOrdersBtn" class="px-4 py-2.5 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow-lg shadow-amber-500/20 transition-all">
+            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+                <button onclick="switchTab('orders')" id="tabOrdersBtn" class="px-3.5 py-2.5 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow-lg shadow-amber-500/20 transition-all">
                     📋 Live Orders
                 </button>
-                <button onclick="switchTab('menu')" id="tabMenuBtn" class="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all">
+                <button onclick="switchTab('history')" id="tabHistoryBtn" class="px-3.5 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all">
+                    📜 Order History
+                </button>
+                <button onclick="switchTab('menu')" id="tabMenuBtn" class="px-3.5 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all">
                     🍽️ Manage Menu
                 </button>
                 <button onclick="testAlarm()" class="p-2.5 bg-stone-900 hover:bg-stone-800 text-amber-400 border border-stone-800 rounded-xl text-xs font-bold transition-all" title="Test Alarm Siren">
                     🔊
                 </button>
                 <button onclick="logoutAdmin()" class="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-bold transition-all" title="Logout">
-                    🚪 Logout
+                    🚪
                 </button>
             </div>
         </header>
 
+        <!-- STATS COUNTER BAR (GLOBAL FOR ALL VIEWS) -->
+        <section class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div class="glass-panel p-3.5 rounded-2xl border border-stone-800/80">
+                <span class="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Total Received</span>
+                <div id="statTotalOrders" class="text-xl sm:text-2xl font-black text-white mt-1 font-mono">0</div>
+            </div>
+            <div class="glass-panel p-3.5 rounded-2xl border border-stone-800/80">
+                <span class="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Kitchen Pending</span>
+                <div id="statActiveCount" class="text-xl sm:text-2xl font-black text-amber-400 mt-1 font-mono">0</div>
+            </div>
+            <div class="glass-panel p-3.5 rounded-2xl border border-stone-800/80">
+                <span class="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Bills Paid (Collected)</span>
+                <div id="statPaidSales" class="text-xl sm:text-2xl font-black text-emerald-400 mt-1 font-mono">₹0</div>
+                <span id="statPaidCountSub" class="text-[10px] text-stone-400 font-semibold">0 Orders Paid</span>
+            </div>
+            <div class="glass-panel p-3.5 rounded-2xl border border-stone-800/80">
+                <span class="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Payment Pending</span>
+                <div id="statUnpaidSales" class="text-xl sm:text-2xl font-black text-red-400 mt-1 font-mono">₹0</div>
+                <span id="statUnpaidCountSub" class="text-[10px] text-stone-400 font-semibold">0 Unpaid</span>
+            </div>
+            <div class="glass-panel p-3.5 rounded-2xl border border-stone-800/80 col-span-2 sm:col-span-1">
+                <span class="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Waiter Alerts</span>
+                <div id="statWaiterCalls" class="text-xl sm:text-2xl font-black text-red-400 mt-1 font-mono">0</div>
+            </div>
+        </section>
+
+        <!-- WAITER ALERTS CONTAINER -->
+        <div id="waiterAlertsBox" class="space-y-2 hidden"></div>
+
         <!-- SECTION 1: LIVE ORDERS DASHBOARD -->
         <div id="ordersSection" class="space-y-6">
-            <!-- STATS COUNTER BAR -->
-            <section class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                <div class="glass-panel p-4 rounded-2xl border border-stone-800/80">
-                    <span class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider">Active Orders</span>
-                    <div id="statActiveCount" class="text-2xl sm:text-3xl font-black text-amber-400 mt-1 font-mono">0</div>
-                </div>
-                <div class="glass-panel p-4 rounded-2xl border border-stone-800/80">
-                    <span class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider">Total Sales Today</span>
-                    <div id="statTotalSales" class="text-2xl sm:text-3xl font-black text-emerald-400 mt-1 font-mono">₹0</div>
-                </div>
-                <div class="glass-panel p-4 rounded-2xl border border-stone-800/80">
-                    <span class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider">Waiter Call Alerts</span>
-                    <div id="statWaiterCalls" class="text-2xl sm:text-3xl font-black text-red-400 mt-1 font-mono">0</div>
-                </div>
-                <div class="glass-panel p-4 rounded-2xl border border-stone-800/80">
-                    <span class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider">Completed Orders</span>
-                    <div id="statCompletedCount" class="text-2xl sm:text-3xl font-black text-stone-300 mt-1 font-mono">0</div>
-                </div>
-            </section>
-
-            <!-- WAITER ALERTS CONTAINER -->
-            <div id="waiterAlertsBox" class="space-y-2 hidden"></div>
-
-            <!-- MAIN ORDERS QUEUE -->
             <main class="space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <h2 class="text-base font-extrabold text-stone-200 flex items-center gap-2">
@@ -204,15 +212,36 @@
 
                 <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
 
-                <div id="emptyOrdersState" class="glass-panel text-center py-20 rounded-3xl text-stone-500 space-y-2 border border-stone-800/80">
+                <div id="emptyOrdersState" class="glass-panel text-center py-16 rounded-3xl text-stone-500 space-y-2 border border-stone-800/80">
                     <div class="text-4xl">☕</div>
-                    <p class="text-xs font-bold text-stone-300">No active orders right now.</p>
+                    <p class="text-xs font-bold text-stone-300">No active kitchen orders right now.</p>
                     <p class="text-[11px] text-stone-500">New customer orders will appear here automatically with a loud alarm siren!</p>
                 </div>
             </main>
         </div>
 
-        <!-- SECTION 2: MANAGE MENU (ADD / EDIT DISHES) -->
+        <!-- SECTION 2: ORDER HISTORY -->
+        <div id="historySection" class="space-y-4 hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-stone-800">
+                <div>
+                    <h2 class="text-lg font-black text-stone-100">All Orders History</h2>
+                    <p class="text-xs text-stone-400">Complete record of received, served, paid, and unpaid orders</p>
+                </div>
+                <div class="flex gap-1.5 bg-stone-900/90 p-1 rounded-xl border border-stone-800 text-xs font-bold">
+                    <button onclick="setHistoryFilter('ALL')" id="histFilterAll" class="px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all">All History</button>
+                    <button onclick="setHistoryFilter('PAID')" id="histFilterPaid" class="px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all">Paid Only</button>
+                    <button onclick="setHistoryFilter('UNPAID')" id="histFilterUnpaid" class="px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all">Unpaid Only</button>
+                </div>
+            </div>
+
+            <div id="historyGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            <div id="emptyHistoryState" class="glass-panel text-center py-16 rounded-3xl text-stone-500 space-y-2 border border-stone-800/80 hidden">
+                <div class="text-4xl">📜</div>
+                <p class="text-xs font-bold text-stone-300">No history matching this filter.</p>
+            </div>
+        </div>
+
+        <!-- SECTION 3: MANAGE MENU (ADD / EDIT DISHES) -->
         <div id="menuSection" class="space-y-6 hidden">
             <div class="flex justify-between items-center pb-2 border-b border-stone-800">
                 <div>
@@ -306,6 +335,7 @@
         // APP STATE
         let audioCtx = null;
         let currentFilter = 'ALL';
+        let historyFilter = 'ALL';
         let rawOrdersData = null;
         let rawMenuData = null;
         let previousOrderKeysCount = 0;
@@ -352,15 +382,13 @@
                 document.getElementById('authStep1').classList.add('hidden');
 
                 if (userData) {
-                    // Existing user -> Prompt PIN login
                     pendingAuthUser.savedPin = userData.pin;
-                    pendingAuthUser.name = userData.name; // Use saved name
+                    pendingAuthUser.name = userData.name;
                     document.getElementById('welcomeUserText').innerText = `Welcome back, ${userData.name}!`;
                     document.getElementById('userMobileSubtext').innerText = `Mobile: +91 ${mobile}`;
                     document.getElementById('authStep2Login').classList.remove('hidden');
                     document.getElementById('loginPin').focus();
                 } else {
-                    // New user -> Prompt PIN creation
                     document.getElementById('authStep2Signup').classList.remove('hidden');
                     document.getElementById('signupPin').focus();
                 }
@@ -439,10 +467,10 @@
 
         // --- REALTIME LISTENERS ---
         function initFirebaseListeners() {
-            // Live Orders
             db.ref('orders').on('value', (snapshot) => {
                 rawOrdersData = snapshot.val();
                 renderOrdersData();
+                renderHistoryData();
 
                 if (rawOrdersData) {
                     const currentKeysCount = Object.keys(rawOrdersData).length;
@@ -454,13 +482,11 @@
                 isFirstOrdersLoad = false;
             });
 
-            // Live Menu
             db.ref('menu').on('value', (snapshot) => {
                 rawMenuData = snapshot.val();
                 renderMenuItems();
             });
 
-            // Live Waiter Calls
             db.ref('waiterCalls').on('value', (snapshot) => {
                 const waiterData = snapshot.val();
                 renderWaiterCalls(waiterData);
@@ -500,21 +526,32 @@
 
         // --- TAB SWITCHING ---
         function switchTab(tab) {
+            const btnActive = "px-3.5 py-2.5 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow-lg shadow-amber-500/20 transition-all";
+            const btnInactive = "px-3.5 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all";
+
+            document.getElementById('ordersSection').classList.add('hidden');
+            document.getElementById('historySection').classList.add('hidden');
+            document.getElementById('menuSection').classList.add('hidden');
+
+            document.getElementById('tabOrdersBtn').className = btnInactive;
+            document.getElementById('tabHistoryBtn').className = btnInactive;
+            document.getElementById('tabMenuBtn').className = btnInactive;
+
             if (tab === 'orders') {
                 document.getElementById('ordersSection').classList.remove('hidden');
-                document.getElementById('menuSection').classList.add('hidden');
-                document.getElementById('tabOrdersBtn').className = "px-4 py-2.5 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow-lg shadow-amber-500/20 transition-all";
-                document.getElementById('tabMenuBtn').className = "px-4 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all";
-            } else {
-                document.getElementById('ordersSection').classList.add('hidden');
+                document.getElementById('tabOrdersBtn').className = btnActive;
+            } else if (tab === 'history') {
+                document.getElementById('historySection').classList.remove('hidden');
+                document.getElementById('tabHistoryBtn').className = btnActive;
+                renderHistoryData();
+            } else if (tab === 'menu') {
                 document.getElementById('menuSection').classList.remove('hidden');
-                document.getElementById('tabMenuBtn').className = "px-4 py-2.5 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow-lg shadow-amber-500/20 transition-all";
-                document.getElementById('tabOrdersBtn').className = "px-4 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all";
+                document.getElementById('tabMenuBtn').className = btnActive;
                 renderMenuItems();
             }
         }
 
-        // --- FILTERING ORDERS ---
+        // --- FILTERING ---
         function setFilter(filter) {
             currentFilter = filter;
             const btnActive = "px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all font-bold";
@@ -526,47 +563,79 @@
             renderOrdersData();
         }
 
-        // --- RENDER LIVE ORDERS & STATS ---
+        function setHistoryFilter(filter) {
+            historyFilter = filter;
+            const btnActive = "px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all font-bold";
+            const btnInactive = "px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all font-bold";
+
+            document.getElementById('histFilterAll').className = filter === 'ALL' ? btnActive : btnInactive;
+            document.getElementById('histFilterPaid').className = filter === 'PAID' ? btnActive : btnInactive;
+            document.getElementById('histFilterUnpaid').className = filter === 'UNPAID' ? btnActive : btnInactive;
+            renderHistoryData();
+        }
+
+        // Helper to generate unique short order ID
+        function getShortOrderId(key, order) {
+            if (order && order.orderId) return order.orderId;
+            return '#ORD-' + key.slice(-5).toUpperCase();
+        }
+
+        // --- RENDER LIVE KITCHEN QUEUE & STATS ---
         function renderOrdersData() {
             const grid = document.getElementById('ordersGrid');
             const emptyState = document.getElementById('emptyOrdersState');
             grid.innerHTML = '';
 
             if (!rawOrdersData) {
-                document.getElementById('statActiveCount').innerText = "0";
-                document.getElementById('statTotalSales').innerText = "₹0";
-                document.getElementById('statCompletedCount').innerText = "0";
+                updateStats(0, 0, 0, 0, 0, 0);
                 emptyState.classList.remove('hidden');
                 return;
             }
 
-            let activeCount = 0;
-            let totalSales = 0;
-            let completedCount = 0;
+            let totalOrdersCount = 0;
+            let activeKitchenCount = 0;
+            let paidCount = 0;
+            let paidSales = 0;
+            let unpaidCount = 0;
+            let unpaidSales = 0;
             let visibleCards = 0;
 
             const keys = Object.keys(rawOrdersData).reverse();
+            totalOrdersCount = keys.length;
 
             keys.forEach(key => {
                 const order = rawOrdersData[key];
-                
-                if (order.status === 'PAID') {
-                    completedCount++;
-                    totalSales += (order.total || 0);
+                const orderTotal = order.total || 0;
+                const isPaid = order.paymentStatus === 'PAID' || order.status === 'PAID';
+                const isKitchenActive = order.status === 'NEW ORDER' || order.status === 'PREPARING';
+
+                if (isPaid) {
+                    paidCount++;
+                    paidSales += orderTotal;
                 } else {
-                    activeCount++;
+                    unpaidCount++;
+                    unpaidSales += orderTotal;
                 }
 
-                // Filter logic
-                if (currentFilter !== 'ALL' && order.status !== currentFilter) return;
+                if (isKitchenActive) {
+                    activeKitchenCount++;
+                }
 
-                if (order.status !== 'PAID') {
+                // Filter logic for Live Kitchen Queue (only show non-PAID kitchen orders in live queue)
+                if (isKitchenActive) {
+                    if (currentFilter !== 'ALL' && order.status !== currentFilter) return;
+
                     visibleCards++;
+                    const shortId = getShortOrderId(key, order);
                     const isNew = order.status === 'NEW ORDER';
                     const cardBorder = isNew ? 'order-card-new border-amber-500' : 'border-stone-800/80';
                     const statusBadge = isNew 
                         ? `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-md">NEW ORDER</span>`
                         : `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/40 text-[10px] font-black px-2 py-0.5 rounded-md">PREPARING</span>`;
+
+                    const payBadge = isPaid 
+                        ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-extrabold px-2 py-0.5 rounded-md">🟢 PAID</span>`
+                        : `<span class="bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-extrabold px-2 py-0.5 rounded-md">🔴 UNPAID</span>`;
 
                     let itemsHtml = (order.items || []).map(i => {
                         const addonsStr = (i.addons && i.addons.length > 0) ? `<br><span class="text-[10px] text-amber-500/80 font-normal">Add-ons: ${i.addons.join(', ')}</span>` : '';
@@ -576,41 +645,59 @@
                         </li>`;
                     }).join('');
 
-                    const actionBtn = isNew
-                        ? `<button onclick="updateOrderStatus('${key}', 'PREPARING')" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl shadow active:scale-95 transition-all">Start Preparing 🍳</button>`
-                        : `<button onclick="updateOrderStatus('${key}', 'PAID')" class="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs rounded-xl shadow active:scale-95 transition-all">Mark Completed & Paid ₹</button>`;
+                    const nextStatusBtn = isNew
+                        ? `<button onclick="updateOrderStatus('${key}', 'PREPARING')" class="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl shadow active:scale-95 transition-all">Start Preparing 🍳</button>`
+                        : `<button onclick="updateOrderStatus('${key}', 'READY')" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow active:scale-95 transition-all">Mark Ready 🍽️</button>`;
+
+                    const togglePayBtn = isPaid
+                        ? `<button onclick="togglePaymentStatus('${key}', 'UNPAID')" class="px-3 py-2 bg-stone-800 hover:bg-stone-700 text-stone-400 font-bold text-xs rounded-xl transition-all" title="Mark Unpaid">Unpaid</button>`
+                        : `<button onclick="togglePaymentStatus('${key}', 'PAID')" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs rounded-xl shadow transition-all">Mark Bill Paid 💳</button>`;
 
                     grid.innerHTML += `
                         <div class="glass-panel border ${cardBorder} p-4 rounded-3xl space-y-3 shadow-xl transition-all">
+                            
+                            <!-- UNIQUE ID & TOTAL BANNER -->
+                            <div class="flex justify-between items-center bg-stone-950/80 p-2.5 rounded-2xl border border-stone-800/80">
+                                <div>
+                                    <span class="font-mono text-amber-400 font-black text-xs block">${shortId}</span>
+                                    <span class="text-[10px] text-stone-400 font-mono">${order.time || ''}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[9px] text-stone-500 uppercase font-black block">Total Amount</span>
+                                    <span class="text-lg font-black text-emerald-400 font-mono">₹${orderTotal}</span>
+                                </div>
+                            </div>
+
+                            <!-- TABLE & STATUS -->
                             <div class="flex justify-between items-center border-b border-stone-800/80 pb-2">
                                 <div class="flex items-center gap-2">
                                     <span class="bg-amber-500 text-stone-950 font-black px-2.5 py-1 rounded-lg text-xs">TABLE #${order.tableNo}</span>
                                     ${statusBadge}
                                 </div>
-                                <span class="text-[10px] text-stone-400 font-bold font-mono">${order.time || ''}</span>
+                                ${payBadge}
                             </div>
 
-                            <div class="text-xs font-bold text-stone-300">
-                                👤 ${order.customerName || 'Guest'} <span class="text-stone-500 font-normal">(${order.customerPhone || 'N/A'})</span>
+                            <!-- CUSTOMER INFO -->
+                            <div class="text-xs font-bold text-stone-300 flex justify-between items-center">
+                                <span>👤 ${order.customerName || 'Guest'}</span>
+                                <span class="text-stone-500 font-mono text-[11px]">${order.customerPhone || 'N/A'}</span>
                             </div>
 
-                            <ul class="space-y-0.5 max-h-40 overflow-y-auto no-scrollbar">
+                            <!-- ITEMS LIST -->
+                            <ul class="space-y-0.5 max-h-36 overflow-y-auto no-scrollbar border-y border-stone-800/40 py-1">
                                 ${itemsHtml}
                             </ul>
 
-                            <div class="flex justify-between items-center pt-1 border-t border-stone-800/80 font-bold text-xs">
-                                <span class="text-stone-400">Total Amount</span>
-                                <span class="text-base font-black text-emerald-400 font-mono">₹${order.total || 0}</span>
+                            <!-- ACTION BUTTONS -->
+                            <div class="flex gap-2 pt-1">
+                                ${nextStatusBtn}
+                                ${togglePayBtn}
                             </div>
-
-                            ${actionBtn}
                         </div>`;
                 }
             });
 
-            document.getElementById('statActiveCount').innerText = activeCount;
-            document.getElementById('statTotalSales').innerText = `₹${totalSales}`;
-            document.getElementById('statCompletedCount').innerText = completedCount;
+            updateStats(totalOrdersCount, activeKitchenCount, paidSales, paidCount, unpaidSales, unpaidCount);
 
             if (visibleCards === 0) {
                 emptyState.classList.remove('hidden');
@@ -619,8 +706,107 @@
             }
         }
 
+        // --- RENDER ORDER HISTORY ---
+        function renderHistoryData() {
+            const grid = document.getElementById('historyGrid');
+            const emptyState = document.getElementById('emptyHistoryState');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            if (!rawOrdersData) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            const keys = Object.keys(rawOrdersData).reverse();
+            let visibleHistoryCount = 0;
+
+            keys.forEach(key => {
+                const order = rawOrdersData[key];
+                const isPaid = order.paymentStatus === 'PAID' || order.status === 'PAID';
+                const orderTotal = order.total || 0;
+
+                // History Filter Logic
+                if (historyFilter === 'PAID' && !isPaid) return;
+                if (historyFilter === 'UNPAID' && isPaid) return;
+
+                visibleHistoryCount++;
+                const shortId = getShortOrderId(key, order);
+
+                const statusBadge = `<span class="bg-stone-800 text-stone-300 border border-stone-700 text-[10px] font-black px-2 py-0.5 rounded-md">${order.status || 'RECEIVED'}</span>`;
+
+                const payBadge = isPaid 
+                    ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-extrabold px-2 py-0.5 rounded-md">🟢 PAID</span>`
+                    : `<span class="bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-extrabold px-2 py-0.5 rounded-md">🔴 UNPAID</span>`;
+
+                let itemsHtml = (order.items || []).map(i => {
+                    return `<li class="flex justify-between items-center text-xs text-stone-300 font-semibold py-0.5">
+                        <span>${i.qty}x ${i.name}</span>
+                        <span class="font-mono text-stone-400">₹${i.price * i.qty}</span>
+                    </li>`;
+                }).join('');
+
+                const togglePayBtn = isPaid
+                    ? `<button onclick="togglePaymentStatus('${key}', 'UNPAID')" class="w-full py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-400 font-bold text-xs rounded-xl transition-all">Mark as Unpaid ✖</button>`
+                    : `<button onclick="togglePaymentStatus('${key}', 'PAID')" class="w-full py-1.5 bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs rounded-xl shadow transition-all">Mark Bill Paid 💳</button>`;
+
+                grid.innerHTML += `
+                    <div class="glass-panel p-4 rounded-3xl space-y-3 border border-stone-800/80 shadow-md">
+                        <div class="flex justify-between items-center bg-stone-950/80 p-2.5 rounded-2xl border border-stone-800/80">
+                            <div>
+                                <span class="font-mono text-amber-400 font-black text-xs block">${shortId}</span>
+                                <span class="text-[10px] text-stone-400 font-mono">${order.time || ''}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-base font-black text-emerald-400 font-mono">₹${orderTotal}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 font-black px-2.5 py-0.5 rounded-lg text-xs">TABLE #${order.tableNo}</span>
+                            <div class="flex gap-1.5">
+                                ${statusBadge}
+                                ${payBadge}
+                            </div>
+                        </div>
+
+                        <div class="text-xs font-bold text-stone-300">
+                            👤 ${order.customerName || 'Guest'} <span class="text-stone-500 font-normal">(${order.customerPhone || 'N/A'})</span>
+                        </div>
+
+                        <ul class="space-y-0.5 max-h-28 overflow-y-auto no-scrollbar border-y border-stone-800/40 py-1">
+                            ${itemsHtml}
+                        </ul>
+
+                        ${togglePayBtn}
+                    </div>`;
+            });
+
+            if (visibleHistoryCount === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+        }
+
+        function updateStats(totalCount, activeCount, paidSales, paidCount, unpaidSales, unpaidCount) {
+            document.getElementById('statTotalOrders').innerText = totalCount;
+            document.getElementById('statActiveCount').innerText = activeCount;
+            document.getElementById('statPaidSales').innerText = `₹${paidSales}`;
+            document.getElementById('statPaidCountSub').innerText = `${paidCount} Bills Paid`;
+            document.getElementById('statUnpaidSales').innerText = `₹${unpaidSales}`;
+            document.getElementById('statUnpaidCountSub').innerText = `${unpaidCount} Pending Bill`;
+        }
+
         function updateOrderStatus(orderId, newStatus) {
             db.ref(`orders/${orderId}`).update({ status: newStatus });
+        }
+
+        function togglePaymentStatus(orderId, newPayStatus) {
+            db.ref(`orders/${orderId}`).update({ 
+                paymentStatus: newPayStatus,
+                status: newPayStatus === 'PAID' ? 'PAID' : 'PREPARING'
+            });
         }
 
         // --- RENDER WAITER CALL ALERTS ---
@@ -781,3 +967,4 @@
     </script>
 </body>
 </html>
+
