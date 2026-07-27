@@ -5,128 +5,232 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Demo Cafe - Admin & Menu Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
     
     <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0d0b0a; color: #f5f2eb; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #070605; 
+            color: #f5f2eb; 
+            background-image: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08), transparent 40%);
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes pulseBorder {
-            0%, 100% { border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 0 15px rgba(245, 158, 11, 0.1); }
-            50% { border-color: rgba(245, 158, 11, 1); box-shadow: 0 0 25px rgba(245, 158, 11, 0.3); }
+        @keyframes pulseGlow {
+            0%, 100% { border-color: rgba(245, 158, 11, 0.5); box-shadow: 0 0 20px rgba(245, 158, 11, 0.15); }
+            50% { border-color: rgba(245, 158, 11, 1); box-shadow: 0 0 30px rgba(245, 158, 11, 0.35); }
         }
-        .order-card-new { animation: pulseBorder 1.5s infinite ease-in-out; }
+        .order-card-new { animation: pulseGlow 1.8s infinite ease-in-out; }
+        .glass-panel {
+            background: rgba(18, 15, 13, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
     </style>
 </head>
-<body class="min-h-screen p-4 sm:p-6 pb-24">
+<body class="min-h-screen p-3 sm:p-6 pb-24 selection:bg-amber-500 selection:text-stone-950">
 
-    <!-- AUDIO UNLOCK BANNER -->
-    <div id="audioUnlockBanner" class="bg-amber-500 text-stone-950 p-3 rounded-2xl mb-6 flex justify-between items-center shadow-lg font-bold text-xs">
-        <div class="flex items-center gap-2">
-            <span>⚠️</span>
-            <span>Kitchen Alarm is muted. Click to enable sound alerts!</span>
+    <!-- ========================================== -->
+    <!-- SECTION 0: AUTHENTICATION (LOGIN / SIGNUP) -->
+    <!-- ========================================== -->
+    <div id="authContainer" class="fixed inset-0 z-50 bg-stone-950/95 backdrop-blur-2xl flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 border border-stone-800/80">
+            
+            <!-- Auth Header -->
+            <div class="text-center space-y-2">
+                <div class="w-16 h-16 bg-gradient-to-tr from-amber-600 to-amber-400 text-stone-950 rounded-2xl flex items-center justify-center font-black text-3xl mx-auto shadow-lg shadow-amber-500/20">
+                    ☕
+                </div>
+                <h2 class="text-2xl font-black tracking-tight text-white mt-2">Demo Cafe Admin</h2>
+                <p class="text-xs text-stone-400 font-medium">Secure Portal Access</p>
+            </div>
+
+            <!-- STEP 1: IDENTITY INPUT -->
+            <form id="authStep1" onsubmit="handleStep1Submit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-[11px] font-extrabold uppercase text-stone-400 tracking-wider mb-1.5 ml-1">Your Name</label>
+                    <input type="text" id="authName" required placeholder="e.g. Rahul Sharma" class="w-full px-4 py-3 bg-stone-950/80 border border-stone-800 rounded-2xl text-stone-100 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all placeholder:text-stone-600">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-extrabold uppercase text-stone-400 tracking-wider mb-1.5 ml-1">Mobile Number</label>
+                    <input type="tel" id="authMobile" maxlength="10" pattern="[0-9]{10}" required placeholder="10-digit phone number" class="w-full px-4 py-3 bg-stone-950/80 border border-stone-800 rounded-2xl text-stone-100 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all placeholder:text-stone-600 font-mono">
+                </div>
+                <button type="submit" id="btnStep1" class="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all">
+                    Continue ➔
+                </button>
+            </form>
+
+            <!-- STEP 2: EXISTING USER LOGIN (PIN) -->
+            <form id="authStep2Login" onsubmit="handleLoginSubmit(event)" class="space-y-4 hidden">
+                <div class="bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl text-center">
+                    <p class="text-xs font-bold text-amber-400" id="welcomeUserText">Welcome back!</p>
+                    <p class="text-[10px] text-stone-400 mt-0.5" id="userMobileSubtext"></p>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-extrabold uppercase text-stone-400 tracking-wider mb-1.5 text-center">Enter 4-Digit Security PIN</label>
+                    <input type="password" id="loginPin" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" required placeholder="••••" class="w-full px-4 py-3.5 bg-stone-950/80 border border-stone-800 rounded-2xl text-amber-400 font-mono font-bold text-2xl text-center tracking-[0.75em] focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all">
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="resetAuthFlow()" class="w-1/3 py-3 bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-bold text-xs rounded-2xl transition-all">
+                        ← Back
+                    </button>
+                    <button type="submit" class="w-2/3 py-3.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all">
+                        Login ➔
+                    </button>
+                </div>
+            </form>
+
+            <!-- STEP 2: NEW USER REGISTRATION (PIN SETUP) -->
+            <form id="authStep2Signup" onsubmit="handleSignupSubmit(event)" class="space-y-4 hidden">
+                <div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-2xl text-center">
+                    <p class="text-xs font-bold text-blue-400">New Account Setup</p>
+                    <p class="text-[10px] text-stone-400 mt-0.5">Create a 4-digit PIN to secure your admin panel</p>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-extrabold uppercase text-stone-400 tracking-wider mb-1 ml-1">Create PIN</label>
+                        <input type="password" id="signupPin" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" required placeholder="••••" class="w-full px-3 py-3 bg-stone-950/80 border border-stone-800 rounded-2xl text-amber-400 font-mono font-bold text-xl text-center tracking-[0.5em] focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-extrabold uppercase text-stone-400 tracking-wider mb-1 ml-1">Confirm PIN</label>
+                        <input type="password" id="signupConfirmPin" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" required placeholder="••••" class="w-full px-3 py-3 bg-stone-950/80 border border-stone-800 rounded-2xl text-amber-400 font-mono font-bold text-xl text-center tracking-[0.5em] focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="resetAuthFlow()" class="w-1/3 py-3 bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-bold text-xs rounded-2xl transition-all">
+                        ← Back
+                    </button>
+                    <button type="submit" class="w-2/3 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+                        Create & Login ➔
+                    </button>
+                </div>
+            </form>
+
         </div>
-        <button onclick="unlockAudio()" class="px-4 py-1.5 bg-stone-950 text-amber-400 rounded-xl text-xs uppercase tracking-wider font-black shadow active:scale-95 transition-all">
-            Enable Alarm 🔊
-        </button>
     </div>
 
-    <!-- HEADER & MAIN TABS -->
-    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-stone-800">
-        <div class="flex items-center gap-3">
-            <div class="w-12 h-12 bg-amber-500 text-stone-950 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-500/20">
-                ☕
+    <!-- ========================================== -->
+    <!-- MAIN DASHBOARD CONTENT (PROTECTED AREA)   -->
+    <!-- ========================================== -->
+    <div id="mainDashboard" class="hidden max-w-7xl mx-auto space-y-6">
+
+        <!-- AUDIO UNLOCK BANNER -->
+        <div id="audioUnlockBanner" class="bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 p-3.5 rounded-2xl flex justify-between items-center shadow-xl shadow-amber-500/10 border border-amber-400/30 font-bold text-xs">
+            <div class="flex items-center gap-2.5">
+                <span class="text-base">⚠️</span>
+                <span>Kitchen Alert Siren is muted. Click to enable sound alerts!</span>
             </div>
-            <div>
-                <h1 class="text-xl font-black tracking-tight text-white">Demo Cafe — Admin Dashboard</h1>
-                <p class="text-xs text-stone-400 font-medium">Orders & Menu Management Center</p>
-            </div>
-        </div>
-        
-        <div class="flex items-center gap-2">
-            <button onclick="switchTab('orders')" id="tabOrdersBtn" class="px-4 py-2 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow transition-all">
-                📋 Live Orders
-            </button>
-            <button onclick="switchTab('menu')" id="tabMenuBtn" class="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-xs font-bold transition-all">
-                🍽️ Manage Menu
-            </button>
-            <button onclick="testAlarm()" class="p-2 bg-stone-800 hover:bg-stone-700 text-amber-400 border border-stone-700 rounded-xl text-xs font-bold transition-all" title="Test Siren">
-                🔊
+            <button onclick="unlockAudio()" class="px-4 py-2 bg-stone-950 hover:bg-stone-900 text-amber-400 rounded-xl text-xs uppercase tracking-wider font-black shadow-lg active:scale-95 transition-all">
+                Enable Alarm 🔊
             </button>
         </div>
-    </header>
 
-    <!-- SECTION 1: LIVE ORDERS DASHBOARD -->
-    <div id="ordersSection" class="space-y-6 mt-6">
-        <!-- STATS COUNTER BAR -->
-        <section class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-            <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
-                <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Active Orders</span>
-                <div id="statActiveCount" class="text-2xl font-black text-amber-400 mt-1">0</div>
-            </div>
-            <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
-                <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Total Sales Today</span>
-                <div id="statTotalSales" class="text-2xl font-black text-emerald-400 mt-1">₹0</div>
-            </div>
-            <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
-                <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Waiter Call Alerts</span>
-                <div id="statWaiterCalls" class="text-2xl font-black text-red-400 mt-1">0</div>
-            </div>
-            <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
-                <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Completed Orders</span>
-                <div id="statCompletedCount" class="text-2xl font-black text-stone-300 mt-1">0</div>
-            </div>
-        </section>
-
-        <!-- WAITER ALERTS CONTAINER -->
-        <div id="waiterAlertsBox" class="space-y-2 hidden"></div>
-
-        <!-- MAIN ORDERS QUEUE -->
-        <main>
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
-                <h2 class="text-base font-extrabold text-stone-200">Live Kitchen Queue</h2>
-                <div class="flex gap-1.5 bg-stone-900 p-1 rounded-xl border border-stone-800 text-xs font-bold">
-                    <button onclick="setFilter('ALL')" id="filterAll" class="px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all">All</button>
-                    <button onclick="setFilter('NEW ORDER')" id="filterNew" class="px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all">New</button>
-                    <button onclick="setFilter('PREPARING')" id="filterPrep" class="px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all">Preparing</button>
+        <!-- HEADER & NAVIGATION -->
+        <header class="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-stone-800/80">
+            <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 bg-gradient-to-tr from-amber-500 to-amber-400 text-stone-950 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-500/20">
+                    ☕
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-2">
+                        Demo Cafe — Admin Dashboard
+                    </h1>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <p class="text-xs text-stone-400 font-semibold" id="activeUserBadge">Admin Active</p>
+                    </div>
                 </div>
             </div>
-
-            <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-
-            <div id="emptyOrdersState" class="text-center py-20 text-stone-500 space-y-2">
-                <div class="text-4xl">☕</div>
-                <p class="text-xs font-bold">No active orders right now.</p>
-                <p class="text-[11px] text-stone-600">New customer orders will appear here automatically with a loud alarm!</p>
+            
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button onclick="switchTab('orders')" id="tabOrdersBtn" class="px-4 py-2.5 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow-lg shadow-amber-500/20 transition-all">
+                    📋 Live Orders
+                </button>
+                <button onclick="switchTab('menu')" id="tabMenuBtn" class="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all">
+                    🍽️ Manage Menu
+                </button>
+                <button onclick="testAlarm()" class="p-2.5 bg-stone-900 hover:bg-stone-800 text-amber-400 border border-stone-800 rounded-xl text-xs font-bold transition-all" title="Test Alarm Siren">
+                    🔊
+                </button>
+                <button onclick="logoutAdmin()" class="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-bold transition-all" title="Logout">
+                    🚪 Logout
+                </button>
             </div>
-        </main>
-    </div>
+        </header>
 
-    <!-- SECTION 2: MANAGE MENU (ADD / EDIT DISHES) -->
-    <div id="menuSection" class="space-y-6 mt-6 hidden">
-        <div class="flex justify-between items-center pb-2 border-b border-stone-800">
-            <div>
-                <h2 class="text-lg font-black text-stone-100">Cafe Menu Items Manager</h2>
-                <p class="text-xs text-stone-400">Add new items, update prices, or toggle availability</p>
-            </div>
-            <button onclick="openDishForm()" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs rounded-xl shadow active:scale-95 transition-all">
-                + Add New Dish
-            </button>
+        <!-- SECTION 1: LIVE ORDERS DASHBOARD -->
+        <div id="ordersSection" class="space-y-6">
+            <!-- STATS COUNTER BAR -->
+            <section class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <div class="glass-panel p-4 rounded-2xl border border-stone-800/80">
+                    <span class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider">Active Orders</span>
+                    <div id="statActiveCount" class="text-2xl sm:text-3xl font-black text-amber-400 mt-1 font-mono">0</div>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-stone-800/80">
+                    <span class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider">Total Sales Today</span>
+                    <div id="statTotalSales" class="text-2xl sm:text-3xl font-black text-emerald-400 mt-1 font-mono">₹0</div>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-stone-800/80">
+                    <span class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider">Waiter Call Alerts</span>
+                    <div id="statWaiterCalls" class="text-2xl sm:text-3xl font-black text-red-400 mt-1 font-mono">0</div>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-stone-800/80">
+                    <span class="text-[11px] font-extrabold text-stone-400 uppercase tracking-wider">Completed Orders</span>
+                    <div id="statCompletedCount" class="text-2xl sm:text-3xl font-black text-stone-300 mt-1 font-mono">0</div>
+                </div>
+            </section>
+
+            <!-- WAITER ALERTS CONTAINER -->
+            <div id="waiterAlertsBox" class="space-y-2 hidden"></div>
+
+            <!-- MAIN ORDERS QUEUE -->
+            <main class="space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h2 class="text-base font-extrabold text-stone-200 flex items-center gap-2">
+                        <span>Live Kitchen Queue</span>
+                        <span id="queueBadge" class="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] px-2 py-0.5 rounded-full font-bold">Live Sync</span>
+                    </h2>
+                    <div class="flex gap-1.5 bg-stone-900/90 p-1 rounded-xl border border-stone-800 text-xs font-bold">
+                        <button onclick="setFilter('ALL')" id="filterAll" class="px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all">All</button>
+                        <button onclick="setFilter('NEW ORDER')" id="filterNew" class="px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all">New</button>
+                        <button onclick="setFilter('PREPARING')" id="filterPrep" class="px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all">Preparing</button>
+                    </div>
+                </div>
+
+                <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+                <div id="emptyOrdersState" class="glass-panel text-center py-20 rounded-3xl text-stone-500 space-y-2 border border-stone-800/80">
+                    <div class="text-4xl">☕</div>
+                    <p class="text-xs font-bold text-stone-300">No active orders right now.</p>
+                    <p class="text-[11px] text-stone-500">New customer orders will appear here automatically with a loud alarm siren!</p>
+                </div>
+            </main>
         </div>
 
-        <!-- DISH LIST GRID -->
-        <div id="menuItemsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Dynamic Menu Items Injected Here -->
+        <!-- SECTION 2: MANAGE MENU (ADD / EDIT DISHES) -->
+        <div id="menuSection" class="space-y-6 hidden">
+            <div class="flex justify-between items-center pb-2 border-b border-stone-800">
+                <div>
+                    <h2 class="text-lg font-black text-stone-100">Cafe Menu Items Manager</h2>
+                    <p class="text-xs text-stone-400">Add new items, update prices, or toggle availability</p>
+                </div>
+                <button onclick="openDishForm()" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all">
+                    + Add New Dish
+                </button>
+            </div>
+
+            <div id="menuItemsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
     </div>
 
     <!-- ADD / EDIT DISH MODAL FORM -->
     <div id="dishModal" class="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-stone-900 border border-stone-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="glass-panel bg-stone-900 border border-stone-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
             <div class="flex justify-between items-center border-b border-stone-800 pb-3">
                 <h3 id="modalDishTitle" class="font-black text-stone-100 text-base">Add New Dish</h3>
                 <button onclick="closeDishForm()" class="text-stone-400 hover:text-white font-bold text-sm">✕</button>
@@ -136,7 +240,7 @@
             <div class="space-y-3 text-xs">
                 <div>
                     <label class="font-bold text-stone-400 ml-1">Dish Name</label>
-                    <input type="text" id="dishName" placeholder="e.g. Mocha Cold Coffee" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                    <input type="text" id="dishName" placeholder="e.g. Mocha Cold Coffee" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 focus:outline-none focus:border-amber-500">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -146,6 +250,8 @@
                             <option value="Pizza">Pizza</option>
                             <option value="Burger">Burger</option>
                             <option value="Dessert">Dessert</option>
+                            <option value="Snacks">Snacks</option>
+                            <option value="Beverages">Beverages</option>
                         </select>
                     </div>
                     <div>
@@ -176,15 +282,15 @@
                 </div>
             </div>
 
-            <button onclick="saveDish()" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs rounded-xl shadow active:scale-95 transition-all">
+            <button onclick="saveDish()" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all">
                 Save Dish to Menu ➔
             </button>
         </div>
     </div>
 
-    <!-- JAVASCRIPT WITH LIVE FIREBASE REALTIME DB -->
+    <!-- JAVASCRIPT LOGIC -->
     <script>
-        // Initialize Firebase
+        // FIREBASE INITIALIZATION
         const firebaseConfig = {
             apiKey: "AIzaSyAeZq246X-z908x-Il0F-m86c1DaTXlgI4",
             authDomain: "fir-cafe-bd31f.firebaseapp.com",
@@ -197,15 +303,143 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // APP STATE
         let audioCtx = null;
         let currentFilter = 'ALL';
         let rawOrdersData = null;
         let rawMenuData = null;
         let previousOrderKeysCount = 0;
         let isFirstOrdersLoad = true;
+        let pendingAuthUser = null;
 
+        // INITIAL LOAD & AUTH SESSION CHECK
         document.addEventListener('DOMContentLoaded', () => {
-            // Listen to Live Orders
+            checkSavedSession();
+        });
+
+        // --- AUTHENTICATION FLOW ---
+        function checkSavedSession() {
+            const savedSession = localStorage.getItem('demo_cafe_admin_session');
+            if (savedSession) {
+                const user = JSON.parse(savedSession);
+                showDashboard(user);
+            } else {
+                document.getElementById('authContainer').classList.remove('hidden');
+                document.getElementById('mainDashboard').classList.add('hidden');
+            }
+        }
+
+        async function handleStep1Submit(e) {
+            e.preventDefault();
+            const name = document.getElementById('authName').value.trim();
+            const mobile = document.getElementById('authMobile').value.trim();
+
+            if (!name || mobile.length !== 10) {
+                alert("Please enter a valid Name and 10-digit Mobile Number.");
+                return;
+            }
+
+            const btn = document.getElementById('btnStep1');
+            btn.innerText = "Checking...";
+            btn.disabled = true;
+
+            try {
+                const snapshot = await db.ref(`admins/${mobile}`).once('value');
+                const userData = snapshot.val();
+
+                pendingAuthUser = { name, mobile };
+
+                document.getElementById('authStep1').classList.add('hidden');
+
+                if (userData) {
+                    // Existing user -> Prompt PIN login
+                    pendingAuthUser.savedPin = userData.pin;
+                    pendingAuthUser.name = userData.name; // Use saved name
+                    document.getElementById('welcomeUserText').innerText = `Welcome back, ${userData.name}!`;
+                    document.getElementById('userMobileSubtext').innerText = `Mobile: +91 ${mobile}`;
+                    document.getElementById('authStep2Login').classList.remove('hidden');
+                    document.getElementById('loginPin').focus();
+                } else {
+                    // New user -> Prompt PIN creation
+                    document.getElementById('authStep2Signup').classList.remove('hidden');
+                    document.getElementById('signupPin').focus();
+                }
+            } catch (err) {
+                alert("Connection Error: " + err.message);
+            } finally {
+                btn.innerText = "Continue ➔";
+                btn.disabled = false;
+            }
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const pin = document.getElementById('loginPin').value;
+            if (pin === pendingAuthUser.savedPin) {
+                saveAndInitSession(pendingAuthUser);
+            } else {
+                alert("Incorrect 4-Digit PIN! Please try again.");
+                document.getElementById('loginPin').value = '';
+            }
+        }
+
+        async function handleSignupSubmit(e) {
+            e.preventDefault();
+            const pin = document.getElementById('signupPin').value;
+            const confirmPin = document.getElementById('signupConfirmPin').value;
+
+            if (pin.length !== 4) {
+                alert("PIN must be exactly 4 digits.");
+                return;
+            }
+
+            if (pin !== confirmPin) {
+                alert("PINs do not match! Please re-verify.");
+                return;
+            }
+
+            const newUser = {
+                name: pendingAuthUser.name,
+                mobile: pendingAuthUser.mobile,
+                pin: pin,
+                createdAt: new Date().toISOString()
+            };
+
+            await db.ref(`admins/${pendingAuthUser.mobile}`).set(newUser);
+            saveAndInitSession(newUser);
+        }
+
+        function saveAndInitSession(user) {
+            localStorage.setItem('demo_cafe_admin_session', JSON.stringify(user));
+            document.getElementById('authContainer').classList.add('hidden');
+            showDashboard(user);
+        }
+
+        function resetAuthFlow() {
+            document.getElementById('authStep1').classList.remove('hidden');
+            document.getElementById('authStep2Login').classList.add('hidden');
+            document.getElementById('authStep2Signup').classList.add('hidden');
+            document.getElementById('loginPin').value = '';
+            document.getElementById('signupPin').value = '';
+            document.getElementById('signupConfirmPin').value = '';
+        }
+
+        function logoutAdmin() {
+            if (confirm("Are you sure you want to log out?")) {
+                localStorage.removeItem('demo_cafe_admin_session');
+                location.reload();
+            }
+        }
+
+        function showDashboard(user) {
+            document.getElementById('mainDashboard').classList.remove('hidden');
+            document.getElementById('activeUserBadge').innerText = `Admin: ${user.name}`;
+            initFirebaseListeners();
+        }
+
+        // --- REALTIME LISTENERS ---
+        function initFirebaseListeners() {
+            // Live Orders
             db.ref('orders').on('value', (snapshot) => {
                 rawOrdersData = snapshot.val();
                 renderOrdersData();
@@ -220,18 +454,18 @@
                 isFirstOrdersLoad = false;
             });
 
-            // Listen to Live Menu
+            // Live Menu
             db.ref('menu').on('value', (snapshot) => {
                 rawMenuData = snapshot.val();
                 renderMenuItems();
             });
 
-            // Listen to Live Waiter Calls
+            // Live Waiter Calls
             db.ref('waiterCalls').on('value', (snapshot) => {
                 const waiterData = snapshot.val();
                 renderWaiterCalls(waiterData);
             });
-        });
+        }
 
         // --- AUDIO ALARM SYSTEM ---
         function unlockAudio() {
@@ -269,13 +503,13 @@
             if (tab === 'orders') {
                 document.getElementById('ordersSection').classList.remove('hidden');
                 document.getElementById('menuSection').classList.add('hidden');
-                document.getElementById('tabOrdersBtn').className = "px-4 py-2 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow transition-all";
-                document.getElementById('tabMenuBtn').className = "px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-xs font-bold transition-all";
+                document.getElementById('tabOrdersBtn').className = "px-4 py-2.5 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow-lg shadow-amber-500/20 transition-all";
+                document.getElementById('tabMenuBtn').className = "px-4 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all";
             } else {
                 document.getElementById('ordersSection').classList.add('hidden');
                 document.getElementById('menuSection').classList.remove('hidden');
-                document.getElementById('tabMenuBtn').className = "px-4 py-2 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow transition-all";
-                document.getElementById('tabOrdersBtn').className = "px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-xs font-bold transition-all";
+                document.getElementById('tabMenuBtn').className = "px-4 py-2.5 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow-lg shadow-amber-500/20 transition-all";
+                document.getElementById('tabOrdersBtn').className = "px-4 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all";
                 renderMenuItems();
             }
         }
@@ -283,9 +517,12 @@
         // --- FILTERING ORDERS ---
         function setFilter(filter) {
             currentFilter = filter;
-            document.getElementById('filterAll').className = filter === 'ALL' ? "px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all font-bold" : "px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all font-bold";
-            document.getElementById('filterNew').className = filter === 'NEW ORDER' ? "px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all font-bold" : "px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all font-bold";
-            document.getElementById('filterPrep').className = filter === 'PREPARING' ? "px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all font-bold" : "px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all font-bold";
+            const btnActive = "px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all font-bold";
+            const btnInactive = "px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all font-bold";
+            
+            document.getElementById('filterAll').className = filter === 'ALL' ? btnActive : btnInactive;
+            document.getElementById('filterNew').className = filter === 'NEW ORDER' ? btnActive : btnInactive;
+            document.getElementById('filterPrep').className = filter === 'PREPARING' ? btnActive : btnInactive;
             renderOrdersData();
         }
 
@@ -326,57 +563,48 @@
                 if (order.status !== 'PAID') {
                     visibleCards++;
                     const isNew = order.status === 'NEW ORDER';
-                    const cardBorder = isNew ? 'order-card-new border-amber-500' : 'border-stone-800';
+                    const cardBorder = isNew ? 'order-card-new border-amber-500' : 'border-stone-800/80';
                     const statusBadge = isNew 
                         ? `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-md">NEW ORDER</span>`
                         : `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/40 text-[10px] font-black px-2 py-0.5 rounded-md">PREPARING</span>`;
 
                     let itemsHtml = (order.items || []).map(i => {
-                        const addonsStr = (i.addons && i.addons.length > 0) ? `<br><span class="text-[10px] text-amber-500 font-normal">Add-ons: ${i.addons.join(', ')}</span>` : '';
-                        return `<li class="flex justify-between items-start text-xs text-stone-300 font-semibold py-1 border-b border-stone-800/50">
+                        const addonsStr = (i.addons && i.addons.length > 0) ? `<br><span class="text-[10px] text-amber-500/80 font-normal">Add-ons: ${i.addons.join(', ')}</span>` : '';
+                        return `<li class="flex justify-between items-start text-xs text-stone-300 font-semibold py-1 border-b border-stone-800/40">
                             <div><span>${i.qty}x ${i.name}</span>${addonsStr}</div>
-                            <span class="font-bold text-stone-200 ml-2">₹${i.price * i.qty}</span>
+                            <span class="font-bold text-stone-200 ml-2 font-mono">₹${i.price * i.qty}</span>
                         </li>`;
                     }).join('');
 
+                    const actionBtn = isNew
+                        ? `<button onclick="updateOrderStatus('${key}', 'PREPARING')" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl shadow active:scale-95 transition-all">Start Preparing 🍳</button>`
+                        : `<button onclick="updateOrderStatus('${key}', 'PAID')" class="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs rounded-xl shadow active:scale-95 transition-all">Mark Completed & Paid ₹</button>`;
+
                     grid.innerHTML += `
-                        <div class="bg-stone-900 border ${cardBorder} p-4 rounded-3xl space-y-3 shadow-xl transition-all">
-                            <div class="flex justify-between items-center border-b border-stone-800 pb-2">
+                        <div class="glass-panel border ${cardBorder} p-4 rounded-3xl space-y-3 shadow-xl transition-all">
+                            <div class="flex justify-between items-center border-b border-stone-800/80 pb-2">
                                 <div class="flex items-center gap-2">
-                                    <span class="bg-amber-500 text-stone-950 font-extrabold px-2.5 py-1 rounded-lg text-xs">TABLE #${order.tableNo}</span>
+                                    <span class="bg-amber-500 text-stone-950 font-black px-2.5 py-1 rounded-lg text-xs">TABLE #${order.tableNo}</span>
                                     ${statusBadge}
                                 </div>
-                                <span class="text-[10px] text-stone-500 font-bold">${order.time || ''}</span>
+                                <span class="text-[10px] text-stone-400 font-bold font-mono">${order.time || ''}</span>
                             </div>
 
-                            <div class="space-y-1">
-                                <div class="flex justify-between items-center text-xs">
-                                    <span class="font-bold text-white">${order.customerName || 'Guest'} (${order.customerPhone || 'N/A'})</span>
-                                    <span class="text-[10px] bg-stone-800 text-stone-400 px-2 py-0.5 rounded">${order.orderType || 'Dine-In'}</span>
-                                </div>
-                                ${order.notes ? `<p class="text-[11px] bg-amber-950/40 border border-amber-800/40 text-amber-300 p-2 rounded-xl italic">✍️ Note: "${order.notes}"</p>` : ''}
+                            <div class="text-xs font-bold text-stone-300">
+                                👤 ${order.customerName || 'Guest'} <span class="text-stone-500 font-normal">(${order.customerPhone || 'N/A'})</span>
                             </div>
 
-                            <ul class="bg-stone-950 p-3 rounded-2xl space-y-1">${itemsHtml}</ul>
+                            <ul class="space-y-0.5 max-h-40 overflow-y-auto no-scrollbar">
+                                ${itemsHtml}
+                            </ul>
 
-                            <div class="flex justify-between items-center pt-1">
-                                <span class="text-xs text-stone-400 font-bold">Total Bill:</span>
-                                <span class="text-lg font-black text-emerald-400">₹${order.total}</span>
+                            <div class="flex justify-between items-center pt-1 border-t border-stone-800/80 font-bold text-xs">
+                                <span class="text-stone-400">Total Amount</span>
+                                <span class="text-base font-black text-emerald-400 font-mono">₹${order.total || 0}</span>
                             </div>
 
-                            <div class="flex gap-2 pt-1">
-                                ${isNew ? `
-                                    <button onclick="updateOrderStatus('${key}', 'PREPARING')" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black rounded-xl text-xs shadow active:scale-95 transition-all">
-                                        Accept & Prepare 👨‍🍳
-                                    </button>
-                                ` : `
-                                    <button onclick="updateOrderStatus('${key}', 'PAID')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs shadow active:scale-95 transition-all">
-                                        Mark Paid & Complete ✓
-                                    </button>
-                                `}
-                            </div>
-                        </div>
-                    `;
+                            ${actionBtn}
+                        </div>`;
                 }
             });
 
@@ -391,86 +619,90 @@
             }
         }
 
-        function updateOrderStatus(key, newStatus) {
-            db.ref(`orders/${key}`).update({ status: newStatus });
+        function updateOrderStatus(orderId, newStatus) {
+            db.ref(`orders/${orderId}`).update({ status: newStatus });
         }
 
-        // --- RENDER WAITER CALLS ---
-        function renderWaiterCalls(callsData) {
+        // --- RENDER WAITER CALL ALERTS ---
+        function renderWaiterCalls(data) {
             const container = document.getElementById('waiterAlertsBox');
             container.innerHTML = '';
 
-            if (!callsData) {
+            if (!data) {
                 document.getElementById('statWaiterCalls').innerText = "0";
                 container.classList.add('hidden');
                 return;
             }
 
-            const keys = Object.keys(callsData);
-            document.getElementById('statWaiterCalls').innerText = keys.length;
+            const activeCalls = Object.keys(data).filter(k => data[k].status === 'ACTIVE');
+            document.getElementById('statWaiterCalls').innerText = activeCalls.length;
 
-            if (keys.length > 0) {
-                container.classList.remove('hidden');
-                playSirenSound();
-
-                keys.forEach(key => {
-                    const call = callsData[key];
-                    container.innerHTML += `
-                        <div class="bg-red-950/80 border border-red-600/60 p-3.5 rounded-2xl flex justify-between items-center text-xs font-bold text-red-200 shadow-lg">
-                            <div class="flex items-center gap-2">
-                                <span class="text-lg">🔔</span>
-                                <span>WAITER CALLED AT TABLE #${call.tableNo} (${call.time})</span>
-                            </div>
-                            <button onclick="dismissWaiterCall('${key}')" class="px-3 py-1.5 bg-red-600 text-white rounded-xl text-[11px] font-black hover:bg-red-500 active:scale-95 transition-all">
-                                Dismiss ✓
-                            </button>
-                        </div>
-                    `;
-                });
-            } else {
+            if (activeCalls.length === 0) {
                 container.classList.add('hidden');
+                return;
             }
+
+            container.classList.remove('hidden');
+            activeCalls.forEach(k => {
+                const call = data[k];
+                container.innerHTML += `
+                    <div class="bg-red-500/10 border border-red-500/30 p-3 rounded-2xl flex justify-between items-center text-xs text-red-300 animate-pulse">
+                        <div class="flex items-center gap-2 font-bold">
+                            <span>🔔</span>
+                            <span>WAITER NEEDED AT TABLE #${call.tableNo}</span>
+                            <span class="text-[10px] text-stone-400 font-mono">(${call.time || ''})</span>
+                        </div>
+                        <button onclick="dismissWaiterCall('${k}')" class="px-3 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase">
+                            Acknowledge
+                        </button>
+                    </div>
+                `;
+            });
         }
 
-        function dismissWaiterCall(key) {
-            db.ref(`waiterCalls/${key}`).remove();
+        function dismissWaiterCall(id) {
+            db.ref(`waiterCalls/${id}`).update({ status: 'RESOLVED' });
         }
 
-        // --- MENU MANAGEMENT LOGIC (FIREBASE) ---
+        // --- MANAGE MENU DISHES ---
         function renderMenuItems() {
             const grid = document.getElementById('menuItemsGrid');
             grid.innerHTML = '';
 
             if (!rawMenuData) {
-                grid.innerHTML = `<p class="text-xs text-stone-500 col-span-3">No menu items found. Click '+ Add New Dish' to create items.</p>`;
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-stone-500 text-xs font-bold">No dishes in the menu. Click "+ Add New Dish" to get started!</div>`;
                 return;
             }
 
-            Object.keys(rawMenuData).forEach(key => {
-                const item = rawMenuData[key];
-                const isAvailable = item.inStock !== false;
-
-                const stockBadge = isAvailable 
-                    ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-extrabold px-2 py-0.5 rounded-full">In Stock</span>`
-                    : `<span class="bg-red-500/10 text-red-400 border border-red-500/30 text-[10px] font-extrabold px-2 py-0.5 rounded-full">Out of Stock</span>`;
+            Object.keys(rawMenuData).forEach(id => {
+                const dish = rawMenuData[id];
+                const isAvail = dish.available !== false;
 
                 grid.innerHTML += `
-                    <div class="bg-stone-900 border border-stone-800 p-4 rounded-3xl flex gap-3 items-center justify-between shadow-md">
-                        <img src="${item.img || 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300'}" class="w-20 h-20 object-cover rounded-2xl shrink-0">
-                        <div class="flex-1 space-y-1">
-                            <div class="flex items-center gap-1.5">
-                                ${stockBadge}
-                                <span class="text-[10px] text-stone-400 font-bold">${item.category || 'Coffee'}</span>
+                    <div class="glass-panel p-4 rounded-3xl space-y-3 border border-stone-800/80 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-start gap-2">
+                                <img src="${dish.image || 'https://images.unsplash.com/photo-1541167760496-1628856ab772?w=300'}" class="w-16 h-16 rounded-2xl object-cover bg-stone-950 border border-stone-800">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs">${dish.isVeg ? '🟢' : '🔴'}</span>
+                                        <h4 class="font-extrabold text-stone-100 text-sm">${dish.name}</h4>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-amber-500/90">${dish.category || 'General'}</span>
+                                    ${dish.tag ? `<span class="ml-1 bg-amber-500/10 text-amber-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-amber-500/20">${dish.tag}</span>` : ''}
+                                </div>
+                                <span class="font-black text-emerald-400 font-mono text-sm">₹${dish.price}</span>
                             </div>
-                            <h4 class="font-bold text-stone-100 text-xs">${item.name}</h4>
-                            <p class="text-xs font-black text-amber-400">₹${item.price}</p>
-                            
-                            <div class="flex gap-2 pt-1">
-                                <button onclick="toggleStock('${key}', ${!isAvailable})" class="text-[10px] font-bold underline ${isAvailable ? 'text-amber-400' : 'text-emerald-400'}">
-                                    ${isAvailable ? 'Mark Out of Stock' : 'Mark Available'}
-                                </button>
-                                <button onclick="editDish('${key}')" class="text-[10px] text-stone-400 hover:text-white font-bold underline">Edit</button>
-                                <button onclick="deleteDish('${key}')" class="text-[10px] text-red-400 hover:text-red-300 font-bold underline">Delete</button>
+                            <p class="text-[11px] text-stone-400 line-clamp-2">${dish.desc || 'No description provided.'}</p>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2 border-t border-stone-800/80 text-xs">
+                            <button onclick="toggleAvailability('${id}', ${!isAvail})" class="px-3 py-1 rounded-xl text-[10px] font-extrabold border ${isAvail ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}">
+                                ${isAvail ? 'In Stock ✔' : 'Out of Stock ✖'}
+                            </button>
+                            <div class="flex gap-1.5">
+                                <button onclick="editDish('${id}')" class="px-2.5 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg text-xs font-bold">Edit</button>
+                                <button onclick="deleteDish('${id}')" class="px-2.5 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-xs font-bold">Delete</button>
                             </div>
                         </div>
                     </div>
@@ -479,15 +711,15 @@
         }
 
         function openDishForm() {
-            document.getElementById('modalDishTitle').innerText = "Add New Dish";
-            document.getElementById('dishEditId').value = "";
-            document.getElementById('dishName').value = "";
-            document.getElementById('dishCategory').value = "Coffee";
-            document.getElementById('dishPrice').value = "";
-            document.getElementById('dishVeg').value = "true";
-            document.getElementById('dishTag').value = "NEW";
-            document.getElementById('dishImg').value = "";
-            document.getElementById('dishDesc').value = "";
+            document.getElementById('dishEditId').value = '';
+            document.getElementById('dishName').value = '';
+            document.getElementById('dishCategory').value = 'Coffee';
+            document.getElementById('dishPrice').value = '';
+            document.getElementById('dishVeg').value = 'true';
+            document.getElementById('dishTag').value = '';
+            document.getElementById('dishImg').value = '';
+            document.getElementById('dishDesc').value = '';
+            document.getElementById('modalDishTitle').innerText = 'Add New Dish';
             document.getElementById('dishModal').classList.remove('hidden');
         }
 
@@ -495,64 +727,55 @@
             document.getElementById('dishModal').classList.add('hidden');
         }
 
+        function editDish(id) {
+            const dish = rawMenuData[id];
+            if (!dish) return;
+
+            document.getElementById('dishEditId').value = id;
+            document.getElementById('dishName').value = dish.name || '';
+            document.getElementById('dishCategory').value = dish.category || 'Coffee';
+            document.getElementById('dishPrice').value = dish.price || '';
+            document.getElementById('dishVeg').value = dish.isVeg ? 'true' : 'false';
+            document.getElementById('dishTag').value = dish.tag || '';
+            document.getElementById('dishImg').value = dish.image || '';
+            document.getElementById('dishDesc').value = dish.desc || '';
+            document.getElementById('modalDishTitle').innerText = 'Edit Dish Details';
+            document.getElementById('dishModal').classList.remove('hidden');
+        }
+
         function saveDish() {
-            const key = document.getElementById('dishEditId').value;
-            const name = document.getElementById('dishName').value;
+            const id = document.getElementById('dishEditId').value;
+            const name = document.getElementById('dishName').value.trim();
             const category = document.getElementById('dishCategory').value;
-            const price = parseInt(document.getElementById('dishPrice').value);
-            const isVeg = document.getElementById('dishVeg').value === "true";
-            const tag = document.getElementById('dishTag').value || "POPULAR";
-            const img = document.getElementById('dishImg').value || "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300";
-            const desc = document.getElementById('dishDesc').value;
+            const price = parseFloat(document.getElementById('dishPrice').value);
+            const isVeg = document.getElementById('dishVeg').value === 'true';
+            const tag = document.getElementById('dishTag').value.trim();
+            const image = document.getElementById('dishImg').value.trim();
+            const desc = document.getElementById('dishDesc').value.trim();
 
-            if (!name || !price) return alert("Please fill Name and Price!");
+            if (!name || isNaN(price)) {
+                alert("Please fill in Dish Name and Price properly.");
+                return;
+            }
 
-            const dishData = {
-                name: name,
-                category: category,
-                price: price,
-                isVeg: isVeg,
-                tag: tag,
-                img: img,
-                desc: desc,
-                rating: "4.8",
-                inStock: true
-            };
+            const payload = { name, category, price, isVeg, tag, image, desc, available: true };
 
-            if (key) {
-                // Update Existing Dish
-                db.ref(`menu/${key}`).update(dishData);
+            if (id) {
+                db.ref(`menu/${id}`).update(payload);
             } else {
-                // Add New Dish
-                db.ref('menu').push(dishData);
+                db.ref('menu').push(payload);
             }
 
             closeDishForm();
         }
 
-        function editDish(key) {
-            if (!rawMenuData || !rawMenuData[key]) return;
-            const dish = rawMenuData[key];
-
-            document.getElementById('modalDishTitle').innerText = "Edit Dish";
-            document.getElementById('dishEditId').value = key;
-            document.getElementById('dishName').value = dish.name || "";
-            document.getElementById('dishCategory').value = dish.category || "Coffee";
-            document.getElementById('dishPrice').value = dish.price || "";
-            document.getElementById('dishVeg').value = dish.isVeg !== false ? "true" : "false";
-            document.getElementById('dishTag').value = dish.tag || "";
-            document.getElementById('dishImg').value = dish.img || "";
-            document.getElementById('dishDesc').value = dish.desc || "";
-            document.getElementById('dishModal').classList.remove('hidden');
+        function toggleAvailability(id, status) {
+            db.ref(`menu/${id}`).update({ available: status });
         }
 
-        function toggleStock(key, newStockState) {
-            db.ref(`menu/${key}`).update({ inStock: newStockState });
-        }
-
-        function deleteDish(key) {
-            if (confirm("Are you sure you want to delete this dish?")) {
-                db.ref(`menu/${key}`).remove();
+        function deleteDish(id) {
+            if (confirm("Are you sure you want to remove this item from the menu?")) {
+                db.ref(`menu/${id}`).remove();
             }
         }
     </script>
