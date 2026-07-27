@@ -3,55 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo Cafe - Admin Dashboard</title>
+    <title>Demo Cafe - Admin & Menu Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
+    
     <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-</head>
-<body class="bg-stone-950 text-white min-h-screen p-4 md:p-6">
 
-    <!-- HEADER -->
-    <header class="flex justify-between items-center pb-6 border-b border-stone-800">
-        <div>
-            <h1 class="text-xl font-black text-amber-400">Demo Cafe — Real-Time Admin</h1>
-            <p class="text-xs text-stone-400">Live Kitchen Display & Menu Manager</p>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0d0b0a; color: #f5f2eb; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes pulseBorder {
+            0%, 100% { border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 0 15px rgba(245, 158, 11, 0.1); }
+            50% { border-color: rgba(245, 158, 11, 1); box-shadow: 0 0 25px rgba(245, 158, 11, 0.3); }
+        }
+        .order-card-new { animation: pulseBorder 1.5s infinite ease-in-out; }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-6 pb-24">
+
+    <!-- AUDIO UNLOCK BANNER -->
+    <div id="audioUnlockBanner" class="bg-amber-500 text-stone-950 p-3 rounded-2xl mb-6 flex justify-between items-center shadow-lg font-bold text-xs">
+        <div class="flex items-center gap-2">
+            <span>⚠️</span>
+            <span>Kitchen Alarm is muted. Click to enable sound alerts!</span>
         </div>
-        <div class="flex gap-2">
-            <button onclick="playAlarmSound()" class="px-3.5 py-2 bg-stone-900 border border-amber-500/30 text-amber-400 font-bold rounded-xl text-xs shadow-md">🔊 Enable Alarm</button>
-            <button onclick="openDishModal()" class="px-4 py-2 bg-amber-500 text-stone-950 font-bold rounded-xl text-xs shadow-lg">+ Add Dish</button>
+        <button onclick="unlockAudio()" class="px-4 py-1.5 bg-stone-950 text-amber-400 rounded-xl text-xs uppercase tracking-wider font-black shadow active:scale-95 transition-all">
+            Enable Alarm 🔊
+        </button>
+    </div>
+
+    <!-- HEADER & MAIN TABS -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-stone-800">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-amber-500 text-stone-950 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-500/20">
+                ☕
+            </div>
+            <div>
+                <h1 class="text-xl font-black tracking-tight text-white">Demo Cafe — Admin Dashboard</h1>
+                <p class="text-xs text-stone-400 font-medium">Orders & Menu Management Center</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <button onclick="switchTab('orders')" id="tabOrdersBtn" class="px-4 py-2 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow transition-all">
+                📋 Live Orders
+            </button>
+            <button onclick="switchTab('menu')" id="tabMenuBtn" class="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-xs font-bold transition-all">
+                🍽️ Manage Menu
+            </button>
+            <button onclick="testAlarm()" class="p-2 bg-stone-800 hover:bg-stone-700 text-amber-400 border border-stone-700 rounded-xl text-xs font-bold transition-all" title="Test Siren">
+                🔊
+            </button>
         </div>
     </header>
 
-    <!-- LIVE ORDERS QUEUE -->
-    <main class="mt-6 space-y-4">
-        <h2 class="text-xs font-bold text-amber-400/80 uppercase tracking-widest">🔔 Live Customer Orders Queue</h2>
-        <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
-    </main>
-
-    <!-- MANAGE MENU ITEMS -->
-    <section class="mt-10 space-y-4 pt-6 border-t border-stone-800">
-        <h2 class="text-xs font-bold text-stone-400 uppercase tracking-widest">📜 Current Menu Items</h2>
-        <div id="menuGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
-    </section>
-
-    <!-- ADD DISH MODAL -->
-    <div id="dishModal" class="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-stone-900 border border-stone-800 p-6 rounded-3xl w-full max-w-sm space-y-3.5 shadow-2xl">
-            <div class="flex justify-between items-center">
-                <h3 class="font-bold text-base text-white">Add New Dish</h3>
-                <button onclick="closeDishModal()" class="text-stone-400 font-bold hover:text-white">✕</button>
+    <!-- SECTION 1: LIVE ORDERS DASHBOARD -->
+    <div id="ordersSection" class="space-y-6 mt-6">
+        <!-- STATS COUNTER BAR -->
+        <section class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+                <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Active Orders</span>
+                <div id="statActiveCount" class="text-2xl font-black text-amber-400 mt-1">0</div>
             </div>
-            <input type="text" id="dishName" placeholder="Dish Name (e.g. Cold Coffee)" class="w-full p-3 bg-stone-950 border border-stone-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500">
-            <input type="number" id="dishPrice" placeholder="Price in ₹ (e.g. 120)" class="w-full p-3 bg-stone-950 border border-stone-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500">
-            <input type="text" id="dishImg" placeholder="Image URL (Unsplash or Direct Link)" class="w-full p-3 bg-stone-950 border border-stone-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500">
-            <button onclick="saveDishToFirebase()" class="w-full py-3 bg-amber-500 text-stone-950 font-bold rounded-xl text-xs shadow-lg">Save Dish to Menu</button>
+            <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+                <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Total Sales Today</span>
+                <div id="statTotalSales" class="text-2xl font-black text-emerald-400 mt-1">₹0</div>
+            </div>
+            <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+                <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Waiter Call Alerts</span>
+                <div id="statWaiterCalls" class="text-2xl font-black text-red-400 mt-1">0</div>
+            </div>
+            <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+                <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Completed Orders</span>
+                <div id="statCompletedCount" class="text-2xl font-black text-stone-300 mt-1">0</div>
+            </div>
+        </section>
+
+        <!-- WAITER ALERTS CONTAINER -->
+        <div id="waiterAlertsBox" class="space-y-2 hidden"></div>
+
+        <!-- MAIN ORDERS QUEUE -->
+        <main>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
+                <h2 class="text-base font-extrabold text-stone-200">Live Kitchen Queue</h2>
+                <div class="flex gap-1.5 bg-stone-900 p-1 rounded-xl border border-stone-800 text-xs font-bold">
+                    <button onclick="setFilter('ALL')" id="filterAll" class="px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all">All</button>
+                    <button onclick="setFilter('NEW ORDER')" id="filterNew" class="px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all">New</button>
+                    <button onclick="setFilter('PREPARING')" id="filterPrep" class="px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all">Preparing</button>
+                </div>
+            </div>
+
+            <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+            <div id="emptyOrdersState" class="text-center py-20 text-stone-500 space-y-2">
+                <div class="text-4xl">☕</div>
+                <p class="text-xs font-bold">No active orders right now.</p>
+                <p class="text-[11px] text-stone-600">New customer orders will appear here automatically with a loud alarm!</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- SECTION 2: MANAGE MENU (ADD / EDIT DISHES) -->
+    <div id="menuSection" class="space-y-6 mt-6 hidden">
+        <div class="flex justify-between items-center pb-2 border-b border-stone-800">
+            <div>
+                <h2 class="text-lg font-black text-stone-100">Cafe Menu Items Manager</h2>
+                <p class="text-xs text-stone-400">Add new items, update prices, or toggle availability</p>
+            </div>
+            <button onclick="openDishForm()" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs rounded-xl shadow active:scale-95 transition-all">
+                + Add New Dish
+            </button>
+        </div>
+
+        <!-- DISH LIST GRID -->
+        <div id="menuItemsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Dynamic Menu Items Injected Here -->
         </div>
     </div>
 
+    <!-- ADD / EDIT DISH MODAL FORM -->
+    <div id="dishModal" class="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-stone-900 border border-stone-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-stone-800 pb-3">
+                <h3 id="modalDishTitle" class="font-black text-stone-100 text-base">Add New Dish</h3>
+                <button onclick="closeDishForm()" class="text-stone-400 hover:text-white font-bold text-sm">✕</button>
+            </div>
+
+            <input type="hidden" id="dishEditId">
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-bold text-stone-400 ml-1">Dish Name</label>
+                    <input type="text" id="dishName" placeholder="e.g. Mocha Cold Coffee" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-bold text-stone-400 ml-1">Category</label>
+                        <select id="dishCategory" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 focus:outline-none">
+                            <option value="Coffee">Coffee</option>
+                            <option value="Pizza">Pizza</option>
+                            <option value="Burger">Burger</option>
+                            <option value="Dessert">Dessert</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-bold text-stone-400 ml-1">Price (₹)</label>
+                        <input type="number" id="dishPrice" placeholder="180" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 focus:outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-bold text-stone-400 ml-1">Type</label>
+                        <select id="dishVeg" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 focus:outline-none">
+                            <option value="true">🟢 Veg</option>
+                            <option value="false">🔴 Non-Veg</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-bold text-stone-400 ml-1">Tag Badge</label>
+                        <input type="text" id="dishTag" placeholder="e.g. BESTSELLER" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="font-bold text-stone-400 ml-1">Image URL</label>
+                    <input type="text" id="dishImg" placeholder="https://images.unsplash.com/..." class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 focus:outline-none">
+                </div>
+                <div>
+                    <label class="font-bold text-stone-400 ml-1">Description</label>
+                    <textarea id="dishDesc" placeholder="Brief details about ingredients..." class="w-full mt-1 px-3.5 py-2 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 focus:outline-none h-16"></textarea>
+                </div>
+            </div>
+
+            <button onclick="saveDish()" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs rounded-xl shadow active:scale-95 transition-all">
+                Save Dish to Menu ➔
+            </button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT WITH LIVE FIREBASE REALTIME DB -->
     <script>
+        // Initialize Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAeZq246X-z908x-Il0F-m86c1DaTXlgI4",
             authDomain: "fir-cafe-bd31f.firebaseapp.com",
@@ -65,123 +198,57 @@
         const db = firebase.database();
 
         let audioCtx = null;
-        let isInitialLoad = true;
+        let currentFilter = 'ALL';
+        let rawOrdersData = null;
+        let rawMenuData = null;
+        let previousOrderKeysCount = 0;
+        let isFirstOrdersLoad = true;
 
         document.addEventListener('DOMContentLoaded', () => {
             // Listen to Live Orders
             db.ref('orders').on('value', (snapshot) => {
-                const data = snapshot.val();
-                renderOrders(data);
-                if(!isInitialLoad && data) {
-                    playAlarmSound();
+                rawOrdersData = snapshot.val();
+                renderOrdersData();
+
+                if (rawOrdersData) {
+                    const currentKeysCount = Object.keys(rawOrdersData).length;
+                    if (!isFirstOrdersLoad && currentKeysCount > previousOrderKeysCount) {
+                        playSirenSound();
+                    }
+                    previousOrderKeysCount = currentKeysCount;
                 }
-                isInitialLoad = false;
+                isFirstOrdersLoad = false;
             });
 
             // Listen to Live Menu
             db.ref('menu').on('value', (snapshot) => {
-                const data = snapshot.val();
-                renderAdminMenu(data);
+                rawMenuData = snapshot.val();
+                renderMenuItems();
+            });
+
+            // Listen to Live Waiter Calls
+            db.ref('waiterCalls').on('value', (snapshot) => {
+                const waiterData = snapshot.val();
+                renderWaiterCalls(waiterData);
             });
         });
 
-        function renderOrders(ordersData) {
-            const grid = document.getElementById('ordersGrid');
-            grid.innerHTML = '';
-            if(!ordersData) {
-                grid.innerHTML = `<p class="text-xs text-stone-500">अभी कोई नया आर्डर नहीं आया है...</p>`;
-                return;
-            }
-
-            Object.keys(ordersData).forEach(key => {
-                const order = ordersData[key];
-                if(order.status === 'PAID') return;
-
-                let itemsList = order.items.map(i => `<li class="flex justify-between"><span>${i.qty}x ${i.name}</span><span>₹${i.price * i.qty}</span></li>`).join('');
-
-                grid.innerHTML += `
-                    <div class="bg-stone-900 border border-amber-500/30 p-4 rounded-2xl space-y-3 shadow-xl">
-                        <div class="flex justify-between items-center font-extrabold text-amber-400 text-xs">
-                            <span class="bg-amber-500/20 px-2 py-1 rounded-lg">TABLE #${order.tableNo}</span>
-                            <span>${order.orderId}</span>
-                        </div>
-                        <div class="text-xs text-stone-300 space-y-1">
-                            <p class="font-bold text-white">Guest: ${order.customerName} (${order.customerPhone})</p>
-                            <ul class="mt-2 space-y-1 bg-stone-950 p-2.5 rounded-xl text-stone-300">${itemsList}</ul>
-                        </div>
-                        <div class="flex justify-between items-center pt-2 border-t border-stone-800">
-                            <span class="text-xs font-normal text-stone-400">Total Bill:</span>
-                            <span class="text-base font-black text-emerald-400">₹${order.total}</span>
-                        </div>
-                        <button onclick="markPaid('${key}')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-colors">Mark Paid & Complete ✓</button>
-                    </div>
-                `;
-            });
+        // --- AUDIO ALARM SYSTEM ---
+        function unlockAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            document.getElementById('audioUnlockBanner').classList.add('hidden');
         }
 
-        function renderAdminMenu(menuData) {
-            const grid = document.getElementById('menuGrid');
-            grid.innerHTML = '';
-            if(!menuData) {
-                grid.innerHTML = `<p class="text-xs text-stone-500">मेनू खाली है। '+ Add Dish' पर क्लिक करके डिश जोड़ें।</p>`;
-                return;
-            }
-
-            Object.keys(menuData).forEach(key => {
-                const item = menuData[key];
-                const isAvailable = item.inStock !== false;
-
-                grid.innerHTML += `
-                    <div class="bg-stone-900 border border-stone-800 p-3.5 rounded-2xl flex justify-between items-center text-xs">
-                        <div class="flex items-center gap-3">
-                            <img src="${item.img || 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=100'}" class="w-10 h-10 object-cover rounded-xl">
-                            <div>
-                                <p class="font-bold text-white">${item.name}</p>
-                                <p class="text-amber-400 font-black">₹${item.price}</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="toggleStock('${key}', ${!isAvailable})" class="px-2.5 py-1.5 ${isAvailable ? 'bg-stone-800 text-amber-400' : 'bg-emerald-600 text-white'} rounded-xl font-bold">
-                                ${isAvailable ? 'Out of Stock' : 'In Stock'}
-                            </button>
-                            <button onclick="deleteDish('${key}')" class="px-2 py-1.5 bg-red-950 text-red-400 rounded-xl font-bold">✕</button>
-                        </div>
-                    </div>
-                `;
-            });
+        function testAlarm() {
+            unlockAudio();
+            playSirenSound();
         }
 
-        function openDishModal() { document.getElementById('dishModal').classList.remove('hidden'); }
-        function closeDishModal() { document.getElementById('dishModal').classList.add('hidden'); }
-
-        function saveDishToFirebase() {
-            const name = document.getElementById('dishName').value;
-            const price = parseInt(document.getElementById('dishPrice').value);
-            const img = document.getElementById('dishImg').value || "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300";
-
-            if(!name || !price) return alert("कृपया नाम और रेट डालें!");
-
-            db.ref('menu').push({
-                name: name,
-                price: price,
-                img: img,
-                inStock: true
-            });
-
-            closeDishModal();
-            document.getElementById('dishName').value = '';
-            document.getElementById('dishPrice').value = '';
-            document.getElementById('dishImg').value = '';
-        }
-
-        function toggleStock(key, newStatus) { db.ref(`menu/${key}`).update({ inStock: newStatus }); }
-        function deleteDish(key) { if(confirm("डिश हटाना चाहते हैं?")) db.ref(`menu/${key}`).remove(); }
-        function markPaid(key) { db.ref(`orders/${key}`).update({ status: 'PAID' }); }
-
-        function playAlarmSound() {
+        function playSirenSound() {
             try {
-                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if(audioCtx.state === 'suspended') audioCtx.resume();
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
 
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -194,9 +261,300 @@
                 gain.connect(audioCtx.destination);
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.5);
-            } catch(e){}
+            } catch (e) {}
+        }
+
+        // --- TAB SWITCHING ---
+        function switchTab(tab) {
+            if (tab === 'orders') {
+                document.getElementById('ordersSection').classList.remove('hidden');
+                document.getElementById('menuSection').classList.add('hidden');
+                document.getElementById('tabOrdersBtn').className = "px-4 py-2 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow transition-all";
+                document.getElementById('tabMenuBtn').className = "px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-xs font-bold transition-all";
+            } else {
+                document.getElementById('ordersSection').classList.add('hidden');
+                document.getElementById('menuSection').classList.remove('hidden');
+                document.getElementById('tabMenuBtn').className = "px-4 py-2 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow transition-all";
+                document.getElementById('tabOrdersBtn').className = "px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-xs font-bold transition-all";
+                renderMenuItems();
+            }
+        }
+
+        // --- FILTERING ORDERS ---
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.getElementById('filterAll').className = filter === 'ALL' ? "px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all font-bold" : "px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all font-bold";
+            document.getElementById('filterNew').className = filter === 'NEW ORDER' ? "px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all font-bold" : "px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all font-bold";
+            document.getElementById('filterPrep').className = filter === 'PREPARING' ? "px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all font-bold" : "px-3 py-1.5 rounded-lg text-stone-400 hover:text-white transition-all font-bold";
+            renderOrdersData();
+        }
+
+        // --- RENDER LIVE ORDERS & STATS ---
+        function renderOrdersData() {
+            const grid = document.getElementById('ordersGrid');
+            const emptyState = document.getElementById('emptyOrdersState');
+            grid.innerHTML = '';
+
+            if (!rawOrdersData) {
+                document.getElementById('statActiveCount').innerText = "0";
+                document.getElementById('statTotalSales').innerText = "₹0";
+                document.getElementById('statCompletedCount').innerText = "0";
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            let activeCount = 0;
+            let totalSales = 0;
+            let completedCount = 0;
+            let visibleCards = 0;
+
+            const keys = Object.keys(rawOrdersData).reverse();
+
+            keys.forEach(key => {
+                const order = rawOrdersData[key];
+                
+                if (order.status === 'PAID') {
+                    completedCount++;
+                    totalSales += (order.total || 0);
+                } else {
+                    activeCount++;
+                }
+
+                // Filter logic
+                if (currentFilter !== 'ALL' && order.status !== currentFilter) return;
+
+                if (order.status !== 'PAID') {
+                    visibleCards++;
+                    const isNew = order.status === 'NEW ORDER';
+                    const cardBorder = isNew ? 'order-card-new border-amber-500' : 'border-stone-800';
+                    const statusBadge = isNew 
+                        ? `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-md">NEW ORDER</span>`
+                        : `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/40 text-[10px] font-black px-2 py-0.5 rounded-md">PREPARING</span>`;
+
+                    let itemsHtml = (order.items || []).map(i => {
+                        const addonsStr = (i.addons && i.addons.length > 0) ? `<br><span class="text-[10px] text-amber-500 font-normal">Add-ons: ${i.addons.join(', ')}</span>` : '';
+                        return `<li class="flex justify-between items-start text-xs text-stone-300 font-semibold py-1 border-b border-stone-800/50">
+                            <div><span>${i.qty}x ${i.name}</span>${addonsStr}</div>
+                            <span class="font-bold text-stone-200 ml-2">₹${i.price * i.qty}</span>
+                        </li>`;
+                    }).join('');
+
+                    grid.innerHTML += `
+                        <div class="bg-stone-900 border ${cardBorder} p-4 rounded-3xl space-y-3 shadow-xl transition-all">
+                            <div class="flex justify-between items-center border-b border-stone-800 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-amber-500 text-stone-950 font-extrabold px-2.5 py-1 rounded-lg text-xs">TABLE #${order.tableNo}</span>
+                                    ${statusBadge}
+                                </div>
+                                <span class="text-[10px] text-stone-500 font-bold">${order.time || ''}</span>
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-bold text-white">${order.customerName || 'Guest'} (${order.customerPhone || 'N/A'})</span>
+                                    <span class="text-[10px] bg-stone-800 text-stone-400 px-2 py-0.5 rounded">${order.orderType || 'Dine-In'}</span>
+                                </div>
+                                ${order.notes ? `<p class="text-[11px] bg-amber-950/40 border border-amber-800/40 text-amber-300 p-2 rounded-xl italic">✍️ Note: "${order.notes}"</p>` : ''}
+                            </div>
+
+                            <ul class="bg-stone-950 p-3 rounded-2xl space-y-1">${itemsHtml}</ul>
+
+                            <div class="flex justify-between items-center pt-1">
+                                <span class="text-xs text-stone-400 font-bold">Total Bill:</span>
+                                <span class="text-lg font-black text-emerald-400">₹${order.total}</span>
+                            </div>
+
+                            <div class="flex gap-2 pt-1">
+                                ${isNew ? `
+                                    <button onclick="updateOrderStatus('${key}', 'PREPARING')" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black rounded-xl text-xs shadow active:scale-95 transition-all">
+                                        Accept & Prepare 👨‍🍳
+                                    </button>
+                                ` : `
+                                    <button onclick="updateOrderStatus('${key}', 'PAID')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs shadow active:scale-95 transition-all">
+                                        Mark Paid & Complete ✓
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            document.getElementById('statActiveCount').innerText = activeCount;
+            document.getElementById('statTotalSales').innerText = `₹${totalSales}`;
+            document.getElementById('statCompletedCount').innerText = completedCount;
+
+            if (visibleCards === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+        }
+
+        function updateOrderStatus(key, newStatus) {
+            db.ref(`orders/${key}`).update({ status: newStatus });
+        }
+
+        // --- RENDER WAITER CALLS ---
+        function renderWaiterCalls(callsData) {
+            const container = document.getElementById('waiterAlertsBox');
+            container.innerHTML = '';
+
+            if (!callsData) {
+                document.getElementById('statWaiterCalls').innerText = "0";
+                container.classList.add('hidden');
+                return;
+            }
+
+            const keys = Object.keys(callsData);
+            document.getElementById('statWaiterCalls').innerText = keys.length;
+
+            if (keys.length > 0) {
+                container.classList.remove('hidden');
+                playSirenSound();
+
+                keys.forEach(key => {
+                    const call = callsData[key];
+                    container.innerHTML += `
+                        <div class="bg-red-950/80 border border-red-600/60 p-3.5 rounded-2xl flex justify-between items-center text-xs font-bold text-red-200 shadow-lg">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg">🔔</span>
+                                <span>WAITER CALLED AT TABLE #${call.tableNo} (${call.time})</span>
+                            </div>
+                            <button onclick="dismissWaiterCall('${key}')" class="px-3 py-1.5 bg-red-600 text-white rounded-xl text-[11px] font-black hover:bg-red-500 active:scale-95 transition-all">
+                                Dismiss ✓
+                            </button>
+                        </div>
+                    `;
+                });
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function dismissWaiterCall(key) {
+            db.ref(`waiterCalls/${key}`).remove();
+        }
+
+        // --- MENU MANAGEMENT LOGIC (FIREBASE) ---
+        function renderMenuItems() {
+            const grid = document.getElementById('menuItemsGrid');
+            grid.innerHTML = '';
+
+            if (!rawMenuData) {
+                grid.innerHTML = `<p class="text-xs text-stone-500 col-span-3">No menu items found. Click '+ Add New Dish' to create items.</p>`;
+                return;
+            }
+
+            Object.keys(rawMenuData).forEach(key => {
+                const item = rawMenuData[key];
+                const isAvailable = item.inStock !== false;
+
+                const stockBadge = isAvailable 
+                    ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-extrabold px-2 py-0.5 rounded-full">In Stock</span>`
+                    : `<span class="bg-red-500/10 text-red-400 border border-red-500/30 text-[10px] font-extrabold px-2 py-0.5 rounded-full">Out of Stock</span>`;
+
+                grid.innerHTML += `
+                    <div class="bg-stone-900 border border-stone-800 p-4 rounded-3xl flex gap-3 items-center justify-between shadow-md">
+                        <img src="${item.img || 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300'}" class="w-20 h-20 object-cover rounded-2xl shrink-0">
+                        <div class="flex-1 space-y-1">
+                            <div class="flex items-center gap-1.5">
+                                ${stockBadge}
+                                <span class="text-[10px] text-stone-400 font-bold">${item.category || 'Coffee'}</span>
+                            </div>
+                            <h4 class="font-bold text-stone-100 text-xs">${item.name}</h4>
+                            <p class="text-xs font-black text-amber-400">₹${item.price}</p>
+                            
+                            <div class="flex gap-2 pt-1">
+                                <button onclick="toggleStock('${key}', ${!isAvailable})" class="text-[10px] font-bold underline ${isAvailable ? 'text-amber-400' : 'text-emerald-400'}">
+                                    ${isAvailable ? 'Mark Out of Stock' : 'Mark Available'}
+                                </button>
+                                <button onclick="editDish('${key}')" class="text-[10px] text-stone-400 hover:text-white font-bold underline">Edit</button>
+                                <button onclick="deleteDish('${key}')" class="text-[10px] text-red-400 hover:text-red-300 font-bold underline">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openDishForm() {
+            document.getElementById('modalDishTitle').innerText = "Add New Dish";
+            document.getElementById('dishEditId').value = "";
+            document.getElementById('dishName').value = "";
+            document.getElementById('dishCategory').value = "Coffee";
+            document.getElementById('dishPrice').value = "";
+            document.getElementById('dishVeg').value = "true";
+            document.getElementById('dishTag').value = "NEW";
+            document.getElementById('dishImg').value = "";
+            document.getElementById('dishDesc').value = "";
+            document.getElementById('dishModal').classList.remove('hidden');
+        }
+
+        function closeDishForm() {
+            document.getElementById('dishModal').classList.add('hidden');
+        }
+
+        function saveDish() {
+            const key = document.getElementById('dishEditId').value;
+            const name = document.getElementById('dishName').value;
+            const category = document.getElementById('dishCategory').value;
+            const price = parseInt(document.getElementById('dishPrice').value);
+            const isVeg = document.getElementById('dishVeg').value === "true";
+            const tag = document.getElementById('dishTag').value || "POPULAR";
+            const img = document.getElementById('dishImg').value || "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300";
+            const desc = document.getElementById('dishDesc').value;
+
+            if (!name || !price) return alert("Please fill Name and Price!");
+
+            const dishData = {
+                name: name,
+                category: category,
+                price: price,
+                isVeg: isVeg,
+                tag: tag,
+                img: img,
+                desc: desc,
+                rating: "4.8",
+                inStock: true
+            };
+
+            if (key) {
+                // Update Existing Dish
+                db.ref(`menu/${key}`).update(dishData);
+            } else {
+                // Add New Dish
+                db.ref('menu').push(dishData);
+            }
+
+            closeDishForm();
+        }
+
+        function editDish(key) {
+            if (!rawMenuData || !rawMenuData[key]) return;
+            const dish = rawMenuData[key];
+
+            document.getElementById('modalDishTitle').innerText = "Edit Dish";
+            document.getElementById('dishEditId').value = key;
+            document.getElementById('dishName').value = dish.name || "";
+            document.getElementById('dishCategory').value = dish.category || "Coffee";
+            document.getElementById('dishPrice').value = dish.price || "";
+            document.getElementById('dishVeg').value = dish.isVeg !== false ? "true" : "false";
+            document.getElementById('dishTag').value = dish.tag || "";
+            document.getElementById('dishImg').value = dish.img || "";
+            document.getElementById('dishDesc').value = dish.desc || "";
+            document.getElementById('dishModal').classList.remove('hidden');
+        }
+
+        function toggleStock(key, newStockState) {
+            db.ref(`menu/${key}`).update({ inStock: newStockState });
+        }
+
+        function deleteDish(key) {
+            if (confirm("Are you sure you want to delete this dish?")) {
+                db.ref(`menu/${key}`).remove();
+            }
         }
     </script>
 </body>
 </html>
-
