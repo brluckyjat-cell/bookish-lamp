@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Cafe - Admin & Kitchen Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #12100e; color: #f5f2eb; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes pulseBorder {
+            0%, 100% { border-color: rgba(245, 158, 11, 0.4); }
+            50% { border-color: rgba(245, 158, 11, 1); }
+        }
+        .order-card-new { animation: pulseBorder 1.5s infinite ease-in-out; }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-6 pb-20">
+
+    <!-- HEADER -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-stone-800">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-amber-500 text-stone-950 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-500/20">
+                ☕
+            </div>
+            <div>
+                <h1 class="text-xl font-black tracking-tight text-white">Demo Cafe — Admin Dashboard</h1>
+                <p class="text-xs text-stone-400 font-medium">Kitchen Display & Counter Manager</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <button onclick="testAlarm()" class="px-3.5 py-2 bg-stone-800 hover:bg-stone-700 text-amber-400 border border-stone-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+                <span>🔊</span> Test Alarm Siren
+            </button>
+            <button onclick="clearAllData()" class="px-3.5 py-2 bg-stone-900 hover:bg-red-950 text-red-400 border border-red-900/50 rounded-xl text-xs font-bold transition-all">
+                Reset All Data
+            </button>
+        </div>
+    </header>
+
+    <!-- STATS COUNTER BAR -->
+    <section class="grid grid-cols-2 sm:grid-cols-4 gap-3.5 my-6">
+        <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+            <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Active Orders</span>
+            <div id="statActiveCount" class="text-2xl font-black text-amber-400 mt-1">0</div>
+        </div>
+        <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+            <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Total Sales Today</span>
+            <div id="statTotalSales" class="text-2xl font-black text-emerald-400 mt-1">₹0</div>
+        </div>
+        <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+            <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Waiter Call Alerts</span>
+            <div id="statWaiterCalls" class="text-2xl font-black text-red-400 mt-1">0</div>
+        </div>
+        <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-2xl">
+            <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Completed Orders</span>
+            <div id="statCompletedCount" class="text-2xl font-black text-stone-300 mt-1">0</div>
+        </div>
+    </section>
+
+    <!-- WAITER ALERTS CONTAINER -->
+    <div id="waiterAlertsBox" class="space-y-2 mb-6 hidden">
+        <!-- Dynamic Waiter Call Cards injected here -->
+    </div>
+
+    <!-- MAIN ORDERS SECTION -->
+    <main>
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-base font-extrabold text-stone-200">Live Kitchen & Counter Orders</h2>
+            <span class="text-xs text-stone-500 font-medium">Syncing automatically in real-time</span>
+        </div>
+
+        <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Dynamic Order Cards will appear here -->
+        </div>
+
+        <div id="emptyOrdersState" class="text-center py-20 text-stone-500 space-y-2">
+            <div class="text-4xl">☕</div>
+            <p class="text-xs font-bold">No active orders right now.</p>
+            <p class="text-[11px] text-stone-600">New customer orders will appear here automatically with a loud alarm!</p>
+        </div>
+    </main>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminData();
+            
+            // Listen to real-time storage changes from customer menu (index.html)
+            window.addEventListener('storage', (e) => {
+                loadAdminData();
+                playSirenSound();
+            });
+        });
+
+        function loadAdminData() {
+            const allOrders = JSON.parse(localStorage.getItem('demoCafeOrders') || '[]');
+            const waiterCalls = JSON.parse(localStorage.getItem('demoCafeWaiterCalls') || '[]');
+
+            // Calculate Stats
+            const activeOrders = allOrders.filter(o => o.status !== 'PAID');
+            const completedOrders = allOrders.filter(o => o.status === 'PAID');
+            const totalSales = allOrders.reduce((sum, o) => sum + o.total, 0);
+
+            document.getElementById('statActiveCount').innerText = activeOrders.length;
+            document.getElementById('statTotalSales').innerText = `₹${totalSales}`;
+            document.getElementById('statWaiterCalls').innerText = waiterCalls.length;
+            document.getElementById('statCompletedCount').innerText = completedOrders.length;
+
+            renderWaiterCalls(waiterCalls);
+            renderOrders(allOrders);
+        }
+
+        function renderWaiterCalls(calls) {
+            const box = document.getElementById('waiterAlertsBox');
+            box.innerHTML = '';
+
+            if (calls.length === 0) {
+                box.classList.add('hidden');
+                return;
+            }
+
+            box.classList.remove('hidden');
+            calls.forEach((call, idx) => {
+                box.innerHTML += `
+                    <div class="bg-red-950/80 border border-red-800/80 p-3.5 rounded-2xl flex justify-between items-center text-xs text-red-200">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🔔</span>
+                            <div>
+                                <strong class="text-white">TABLE #${call.tableNo}</strong> is calling a waiter!
+                                <span class="text-[10px] text-red-400/80 block">${call.time}</span>
+                            </div>
+                        </div>
+                        <button onclick="dismissWaiterCall(${idx})" class="px-3 py-1.5 bg-red-900 hover:bg-red-800 text-white font-bold text-[11px] rounded-xl transition-all">
+                            Dismiss ✓
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function dismissWaiterCall(idx) {
+            let waiterCalls = JSON.parse(localStorage.getItem('demoCafeWaiterCalls') || '[]');
+            waiterCalls.splice(idx, 1);
+            localStorage.setItem('demoCafeWaiterCalls', JSON.stringify(waiterCalls));
+            loadAdminData();
+        }
+
+        function renderOrders(orders) {
+            const grid = document.getElementById('ordersGrid');
+            const emptyState = document.getElementById('emptyOrdersState');
+            grid.innerHTML = '';
+
+            const activeOrders = orders.filter(o => o.status !== 'PAID').reverse();
+
+            if (activeOrders.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            activeOrders.forEach(order => {
+                let itemsHTML = '';
+                order.items.forEach(it => {
+                    const addonText = it.addons && it.addons.length > 0 ? `<p class="text-[10px] text-amber-400/80 pl-2">Addons: ${it.addons.join(', ')}</p>` : '';
+                    itemsHTML += `
+                        <div class="py-1.5 border-b border-stone-800 text-xs">
+                            <div class="flex justify-between font-bold text-stone-200">
+                                <span>${it.qty}x ${it.name}</span>
+                                <span class="text-stone-400">₹${it.price * it.qty}</span>
+                            </div>
+                            ${addonText}
+                        </div>
+                    `;
+                });
+
+                let notesHTML = order.notes ? `<div class="text-[11px] bg-stone-950 p-2 rounded-xl text-amber-300/90 border border-stone-800">Note: ${order.notes}</div>` : '';
+
+                let statusBadgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+                if(order.status === 'PREPARING') statusBadgeColor = 'bg-blue-500/10 text-blue-400 border-blue-500/30';
+
+                grid.innerHTML += `
+                    <div class="bg-stone-900 border border-stone-800 p-5 rounded-3xl shadow-xl space-y-4 order-card-new">
+                        <div class="flex justify-between items-center border-b border-stone-800 pb-3">
+                            <div>
+                                <span class="text-xs font-black bg-amber-500 text-stone-950 px-3 py-1 rounded-full uppercase tracking-wider">TABLE #${order.tableNo}</span>
+                                <p class="text-[11px] text-stone-500 font-bold mt-1.5">${order.orderId} • ${order.time}</p>
+                            </div>
+                            <span class="text-[10px] font-extrabold border px-2.5 py-1 rounded-full uppercase tracking-wider ${statusBadgeColor}">${order.status}</span>
+                        </div>
+
+                        <div class="space-y-1">
+                            ${itemsHTML}
+                        </div>
+
+                        ${notesHTML}
+
+                        <div class="flex justify-between items-center pt-2 border-t border-stone-800 font-black text-sm">
+                            <span class="text-stone-400 text-xs font-bold">${order.customerName} (${order.orderType})</span>
+                            <span class="text-amber-400 text-base">₹${order.total}</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button onclick="updateOrderStatus('${order.orderId}', 'PREPARING')" class="py-2.5 bg-stone-800 hover:bg-stone-700 text-amber-400 text-xs font-bold rounded-xl transition-all">
+                                👨‍🍳 Preparing
+                            </button>
+                            <button onclick="markOrderPaid('${order.orderId}')" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow transition-all">
+                                🟢 Mark Paid
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateOrderStatus(orderId, newStatus) {
+            let orders = JSON.parse(localStorage.getItem('demoCafeOrders') || '[]');
+            let order = orders.find(o => o.orderId === orderId);
+            if (order) {
+                order.status = newStatus;
+                localStorage.setItem('demoCafeOrders', JSON.stringify(orders));
+                loadAdminData();
+            }
+        }
+
+        function markOrderPaid(orderId) {
+            let orders = JSON.parse(localStorage.getItem('demoCafeOrders') || '[]');
+            let order = orders.find(o => o.orderId === orderId);
+            if (order) {
+                order.status = 'PAID';
+                localStorage.setItem('demoCafeOrders', JSON.stringify(orders));
+                loadAdminData();
+            }
+        }
+
+        function clearAllData() {
+            if(confirm("Are you sure you want to clear all active orders and waiter calls?")) {
+                localStorage.removeItem('demoCafeOrders');
+                localStorage.removeItem('demoCafeWaiterCalls');
+                loadAdminData();
+            }
+        }
+
+        function playSirenSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.3);
+                
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            } catch(e){}
+        }
+
+        function testAlarm() {
+            playSirenSound();
+        }
+    </script>
+</body>
+</html>
