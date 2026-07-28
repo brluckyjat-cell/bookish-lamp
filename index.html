@@ -1,968 +1,385 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en" class="scroll-smooth">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo Cafe - Ultimate Admin & POS Manager</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
-    
-    <!-- FIREBASE SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#1c130d" />
+<title>Demo Cafe — Admin & Kitchen Dashboard</title>
 
-    <style>
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #070605; 
-            color: #f5f2eb; 
-            background-image: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08), transparent 40%);
-        }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes pulseGlow {
-            0%, 100% { border-color: rgba(245, 158, 11, 0.5); box-shadow: 0 0 20px rgba(245, 158, 11, 0.15); }
-            50% { border-color: rgba(245, 158, 11, 1); box-shadow: 0 0 30px rgba(245, 158, 11, 0.35); }
-        }
-        .order-card-new { animation: pulseGlow 1.8s infinite ease-in-out; }
-        .glass-panel {
-            background: rgba(18, 15, 13, 0.8);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.07);
-        }
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
 
-        /* PRINT RECEIPT MEDIA STYLES */
-        @media print {
-            body * { visibility: hidden; }
-            #printableArea, #printableArea * { visibility: visible; }
-            #printableArea { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; padding: 10px; font-family: monospace; }
-        }
-    </style>
+<!-- Firebase Compat SDK v9.22.1 -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          serif: ['"Playfair Display"', 'serif'],
+          sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        },
+        colors: {
+          espresso: {
+            50: '#faf6f1', 100: '#f3e9dd', 200: '#e6d0b8', 300: '#d6b189',
+            400: '#c4905d', 500: '#b6773f', 600: '#a06134', 700: '#814b2d',
+            800: '#6a3e2a', 900: '#573424', 950: '#2e1a11',
+          },
+          gold: {
+            300: '#f2d59a', 400: '#e9c273', 500: '#d9a94e', 600: '#c08e35',
+          },
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  :root { color-scheme: light; }
+  html.dark { color-scheme: dark; }
+  body { -webkit-tap-highlight-color: transparent; }
+
+  .text-gold-gradient {
+    background: linear-gradient(100deg, #c08e35 0%, #f2d59a 45%, #e9c273 60%, #c08e35 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .glass {
+    backdrop-filter: saturate(160%) blur(16px);
+    -webkit-backdrop-filter: saturate(160%) blur(16px);
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
 </head>
-<body class="min-h-screen p-3 sm:p-6 pb-24 selection:bg-amber-500 selection:text-stone-950">
 
-    <!-- HIDDEN PRINT CONTAINER FOR KOT & BILLS -->
-    <div id="printableArea" class="hidden"></div>
+<body class="bg-espresso-50 text-espresso-950 dark:bg-espresso-950 dark:text-espresso-50 font-sans antialiased transition-colors duration-300 min-h-screen pb-20">
 
-    <!-- ========================================== -->
-    <!-- SECTION 0: AUTHENTICATION (LOGIN / SIGNUP) -->
-    <!-- ========================================== -->
-    <div id="authContainer" class="fixed inset-0 z-50 bg-stone-950/95 backdrop-blur-2xl flex items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 border border-stone-800/80">
-            <div class="text-center space-y-2">
-                <div class="w-16 h-16 bg-gradient-to-tr from-amber-600 to-amber-400 text-stone-950 rounded-2xl flex items-center justify-center font-black text-3xl mx-auto shadow-lg shadow-amber-500/20">
-                    ☕
-                </div>
-                <h2 class="text-2xl font-black tracking-tight text-white mt-2">Demo Cafe Admin</h2>
-                <p class="text-xs text-stone-400 font-medium">Secure POS & Kitchen Portal</p>
-            </div>
-
-            <!-- STEP 1: IDENTITY INPUT -->
-            <form id="authStep1" onsubmit="handleStep1Submit(event)" class="space-y-4">
-                <div>
-                    <label class="block text-[11px] font-extrabold uppercase text-stone-400 tracking-wider mb-1.5 ml-1">Your Name</label>
-                    <input type="text" id="authName" required placeholder="e.g. Rahul Sharma" class="w-full px-4 py-3 bg-stone-950/80 border border-stone-800 rounded-2xl text-stone-100 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-extrabold uppercase text-stone-400 tracking-wider mb-1.5 ml-1">Mobile Number</label>
-                    <input type="tel" id="authMobile" maxlength="10" pattern="[0-9]{10}" required placeholder="10-digit phone number" class="w-full px-4 py-3 bg-stone-950/80 border border-stone-800 rounded-2xl text-stone-100 text-sm focus:outline-none focus:border-amber-500 font-mono">
-                </div>
-                <button type="submit" id="btnStep1" class="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/20 transition-all">
-                    Continue ➔
-                </button>
-            </form>
-
-            <!-- STEP 2: LOGIN (PIN) -->
-            <form id="authStep2Login" onsubmit="handleLoginSubmit(event)" class="space-y-4 hidden">
-                <div class="bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl text-center">
-                    <p class="text-xs font-bold text-amber-400" id="welcomeUserText">Welcome back!</p>
-                    <p class="text-[10px] text-stone-400 mt-0.5" id="userMobileSubtext"></p>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-extrabold uppercase text-stone-400 tracking-wider mb-1.5 text-center">Enter 4-Digit Security PIN</label>
-                    <input type="password" id="loginPin" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" required placeholder="••••" class="w-full px-4 py-3.5 bg-stone-950/80 border border-stone-800 rounded-2xl text-amber-400 font-mono font-bold text-2xl text-center tracking-[0.75em] focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="flex gap-2">
-                    <button type="button" onclick="resetAuthFlow()" class="w-1/3 py-3 bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-bold text-xs rounded-2xl">← Back</button>
-                    <button type="submit" class="w-2/3 py-3.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-amber-500/20">Login ➔</button>
-                </div>
-            </form>
-
-            <!-- STEP 2: SIGNUP (PIN SETUP) -->
-            <form id="authStep2Signup" onsubmit="handleSignupSubmit(event)" class="space-y-4 hidden">
-                <div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-2xl text-center">
-                    <p class="text-xs font-bold text-blue-400">New Account Setup</p>
-                    <p class="text-[10px] text-stone-400 mt-0.5">Create a 4-digit PIN to secure your dashboard</p>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] font-extrabold uppercase text-stone-400 tracking-wider mb-1 ml-1">Create PIN</label>
-                        <input type="password" id="signupPin" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" required placeholder="••••" class="w-full px-3 py-3 bg-stone-950/80 border border-stone-800 rounded-2xl text-amber-400 font-mono font-bold text-xl text-center tracking-[0.5em] focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-extrabold uppercase text-stone-400 tracking-wider mb-1 ml-1">Confirm PIN</label>
-                        <input type="password" id="signupConfirmPin" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" required placeholder="••••" class="w-full px-3 py-3 bg-stone-950/80 border border-stone-800 rounded-2xl text-amber-400 font-mono font-bold text-xl text-center tracking-[0.5em] focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <button type="button" onclick="resetAuthFlow()" class="w-1/3 py-3 bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-bold text-xs rounded-2xl">← Back</button>
-                    <button type="submit" class="w-2/3 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-500/20">Create & Login ➔</button>
-                </div>
-            </form>
-        </div>
+<!-- ============ HEADER ============ -->
+<header class="glass sticky top-0 z-40 border-b border-espresso-200/60 bg-espresso-50/80 dark:border-white/10 dark:bg-espresso-950/80">
+  <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
+    <div class="flex items-center gap-3">
+      <div class="flex size-10 items-center justify-center rounded-xl bg-espresso-950 text-gold-400 ring-1 ring-gold-500/40 dark:bg-espresso-900">
+        <span class="font-serif text-lg font-bold">D</span>
+      </div>
+      <div>
+        <h1 class="font-serif text-lg font-bold text-gold-gradient">Demo Cafe Admin</h1>
+        <p class="text-[11px] font-medium text-espresso-500 dark:text-espresso-300">Live Kitchen & Manager Portal</p>
+      </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- MAIN DASHBOARD CONTENT (PROTECTED AREA)   -->
-    <!-- ========================================== -->
-    <div id="mainDashboard" class="hidden max-w-7xl mx-auto space-y-6">
+    <div class="flex items-center gap-2">
+      <!-- Mute/Sound toggle -->
+      <button id="soundBtn" class="flex h-9 items-center gap-1.5 rounded-full border border-espresso-300/70 bg-white/70 px-3 text-xs font-semibold dark:border-white/10 dark:bg-white/5">
+        <span id="soundIcon">🔔</span> Sound ON
+      </button>
+      <!-- Theme toggle -->
+      <button id="themeBtn" class="grid size-9 place-items-center rounded-full border border-espresso-300/70 bg-white/70 text-base dark:border-white/10 dark:bg-white/5">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </div>
+</header>
 
-        <!-- AUDIO UNLOCK BANNER -->
-        <div id="audioUnlockBanner" class="bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 p-3.5 rounded-2xl flex justify-between items-center shadow-xl shadow-amber-500/10 border border-amber-400/30 font-bold text-xs">
-            <div class="flex items-center gap-2.5">
-                <span class="text-base">⚠️</span>
-                <span>Kitchen Alert Siren is muted. Click to enable sound alerts!</span>
-            </div>
-            <button onclick="unlockAudio()" class="px-4 py-2 bg-stone-950 text-amber-400 rounded-xl text-xs uppercase tracking-wider font-black shadow-lg">
-                Enable Alarm 🔊
-            </button>
-        </div>
+<main class="mx-auto max-w-7xl px-4 pt-6 space-y-6">
 
-        <!-- HEADER & NAVIGATION -->
-        <header class="glass-panel p-4 sm:p-5 rounded-3xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border border-stone-800/80">
-            <div class="flex items-center gap-3.5">
-                <div class="w-12 h-12 bg-gradient-to-tr from-amber-500 to-amber-400 text-stone-950 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-amber-500/20">
-                    ☕
-                </div>
-                <div>
-                    <h1 class="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-2">
-                        Demo Cafe — Admin & POS Center
-                    </h1>
-                    <div class="flex items-center gap-2 mt-0.5">
-                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <p class="text-xs text-stone-400 font-semibold" id="activeUserBadge">Admin Active</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
-                <button onclick="switchTab('orders')" id="tabOrdersBtn" class="px-3.5 py-2.5 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow-lg transition-all">📋 Live Orders</button>
-                <button onclick="switchTab('history')" id="tabHistoryBtn" class="px-3.5 py-2.5 bg-stone-900 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all">📜 History & Sales</button>
-                <button onclick="switchTab('analytics')" id="tabAnalyticsBtn" class="px-3.5 py-2.5 bg-stone-900 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all">📊 Bestsellers</button>
-                <button onclick="switchTab('menu')" id="tabMenuBtn" class="px-3.5 py-2.5 bg-stone-900 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all">🍽️ Menu Manager</button>
-                <button onclick="switchTab('qr')" id="tabQrBtn" class="px-3.5 py-2.5 bg-stone-900 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all">📱 Table QR</button>
-                <button onclick="testAlarm()" class="p-2.5 bg-stone-900 text-amber-400 border border-stone-800 rounded-xl text-xs font-bold">🔊</button>
-                <button onclick="logoutAdmin()" class="p-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-xs font-bold">🚪</button>
-            </div>
-        </header>
+  <!-- ============ STATS BAR ============ -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="rounded-2xl border border-espresso-200 bg-white p-4 dark:border-white/10 dark:bg-espresso-900">
+      <p class="text-xs font-semibold text-espresso-500 dark:text-espresso-400">Total Revenue</p>
+      <h3 id="statRevenue" class="font-serif text-2xl font-bold text-gold-gradient mt-1">₹0</h3>
+    </div>
+    <div class="rounded-2xl border border-espresso-200 bg-white p-4 dark:border-white/10 dark:bg-espresso-900">
+      <p class="text-xs font-semibold text-espresso-500 dark:text-espresso-400">Active Orders</p>
+      <h3 id="statActive" class="font-serif text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">0</h3>
+    </div>
+    <div class="rounded-2xl border border-espresso-200 bg-white p-4 dark:border-white/10 dark:bg-espresso-900">
+      <p class="text-xs font-semibold text-espresso-500 dark:text-espresso-400">Total Orders Today</p>
+      <h3 id="statTotal" class="font-serif text-2xl font-bold mt-1">0</h3>
+    </div>
+    <div class="rounded-2xl border border-espresso-200 bg-white p-4 dark:border-white/10 dark:bg-espresso-900">
+      <p class="text-xs font-semibold text-espresso-500 dark:text-espresso-400">Pending Waiter Calls</p>
+      <h3 id="statWaiter" class="font-serif text-2xl font-bold text-red-600 dark:text-red-400 mt-1">0</h3>
+    </div>
+  </div>
 
-        <!-- STATS COUNTER BAR (CLEAR BILLING LOGIC) -->
-        <section class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <div class="glass-panel p-3.5 rounded-2xl border border-stone-800/80">
-                <span class="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Total Received</span>
-                <div id="statTotalOrders" class="text-xl sm:text-2xl font-black text-white mt-1 font-mono">0</div>
-            </div>
-            <div class="glass-panel p-3.5 rounded-2xl border border-stone-800/80">
-                <span class="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Kitchen Pending</span>
-                <div id="statActiveCount" class="text-xl sm:text-2xl font-black text-amber-400 mt-1 font-mono">0</div>
-            </div>
-            <div class="glass-panel p-3.5 rounded-2xl border border-stone-800/80">
-                <span class="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Active Table Unpaid</span>
-                <div id="statUnpaidSales" class="text-xl sm:text-2xl font-black text-red-400 mt-1 font-mono">₹0</div>
-                <span id="statUnpaidCountSub" class="text-[10px] text-stone-400 font-semibold">0 Live Bills</span>
-            </div>
-            <div class="glass-panel p-3.5 rounded-2xl border border-stone-800/80">
-                <span class="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Today Revenue (Paid)</span>
-                <div id="statPaidSales" class="text-xl sm:text-2xl font-black text-emerald-400 mt-1 font-mono">₹0</div>
-                <span id="statPaidCountSub" class="text-[10px] text-stone-400 font-semibold">0 Bills Paid</span>
-            </div>
-            <div class="glass-panel p-3.5 rounded-2xl border border-stone-800/80 col-span-2 sm:col-span-1">
-                <span class="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Waiter Alerts</span>
-                <div id="statWaiterCalls" class="text-xl sm:text-2xl font-black text-red-400 mt-1 font-mono">0</div>
-            </div>
-        </section>
+  <!-- ============ WAITER CALLS ALERT SECTION ============ -->
+  <div id="waiterCallsSection" class="hidden rounded-2xl border border-red-500/40 bg-red-500/10 p-4">
+    <div class="flex items-center gap-2 mb-3 text-red-700 dark:text-red-400 font-bold text-sm">
+      <span class="animate-bounce">🛎️</span> Waiter Assistance Requested
+    </div>
+    <div id="waiterCallsList" class="flex flex-wrap gap-2"></div>
+  </div>
 
-        <!-- WAITER ALERTS CONTAINER -->
-        <div id="waiterAlertsBox" class="space-y-2 hidden"></div>
-
-        <!-- SECTION 1: LIVE ORDERS QUEUE -->
-        <div id="ordersSection" class="space-y-6">
-            <main class="space-y-4">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <h2 class="text-base font-extrabold text-stone-200 flex items-center gap-2">
-                        <span>Live Kitchen Queue</span>
-                        <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] px-2 py-0.5 rounded-full font-bold">Live Sync</span>
-                    </h2>
-
-                    <!-- SEARCH & FILTER BAR -->
-                    <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                        <input type="text" id="orderSearchInput" oninput="renderOrdersData()" placeholder="🔍 Search Table, ID, Phone..." class="px-3 py-1.5 bg-stone-900 border border-stone-800 rounded-xl text-xs text-stone-100 focus:outline-none focus:border-amber-500">
-                        <div class="flex gap-1.5 bg-stone-900/90 p-1 rounded-xl border border-stone-800 text-xs font-bold">
-                            <button onclick="setFilter('ALL')" id="filterAll" class="px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 transition-all">All</button>
-                            <button onclick="setFilter('NEW ORDER')" id="filterNew" class="px-3 py-1.5 rounded-lg text-stone-400 transition-all">New</button>
-                            <button onclick="setFilter('PREPARING')" id="filterPrep" class="px-3 py-1.5 rounded-lg text-stone-400 transition-all">Preparing</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-
-                <div id="emptyOrdersState" class="glass-panel text-center py-16 rounded-3xl text-stone-500 space-y-2 border border-stone-800/80">
-                    <div class="text-4xl">☕</div>
-                    <p class="text-xs font-bold text-stone-300">No active kitchen orders right now.</p>
-                </div>
-            </main>
-        </div>
-
-        <!-- SECTION 2: ORDER HISTORY & SALES -->
-        <div id="historySection" class="space-y-4 hidden">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-stone-800">
-                <div>
-                    <h2 class="text-lg font-black text-stone-100">All Orders & Sales History</h2>
-                    <p class="text-xs text-stone-400">Search, filter, and print past receipts</p>
-                </div>
-                <div class="flex gap-1.5 bg-stone-900/90 p-1 rounded-xl border border-stone-800 text-xs font-bold">
-                    <button onclick="setHistoryFilter('ALL')" id="histFilterAll" class="px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950">All History</button>
-                    <button onclick="setHistoryFilter('PAID')" id="histFilterPaid" class="px-3 py-1.5 rounded-lg text-stone-400">Paid Only</button>
-                    <button onclick="setHistoryFilter('UNPAID')" id="histFilterUnpaid" class="px-3 py-1.5 rounded-lg text-stone-400">Unpaid Only</button>
-                </div>
-            </div>
-
-            <div id="historyGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-            <div id="emptyHistoryState" class="glass-panel text-center py-16 rounded-3xl text-stone-500 hidden">
-                <p class="text-xs font-bold text-stone-300">No history matching this filter.</p>
-            </div>
-        </div>
-
-        <!-- SECTION 3: BESTSELLER ANALYTICS -->
-        <div id="analyticsSection" class="space-y-4 hidden">
-            <div class="pb-2 border-b border-stone-800">
-                <h2 class="text-lg font-black text-stone-100">🔥 Top Bestselling Items</h2>
-                <p class="text-xs text-stone-400">Based on today's live orders data</p>
-            </div>
-            <div id="analyticsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
-        </div>
-
-        <!-- SECTION 4: MENU MANAGER -->
-        <div id="menuSection" class="space-y-6 hidden">
-            <div class="flex justify-between items-center pb-2 border-b border-stone-800">
-                <div>
-                    <h2 class="text-lg font-black text-stone-100">Cafe Menu Items Manager</h2>
-                    <p class="text-xs text-stone-400">Add new items, update prices, or toggle availability</p>
-                </div>
-                <button onclick="openDishForm()" class="px-4 py-2.5 bg-amber-500 text-stone-950 font-black text-xs uppercase rounded-xl shadow-lg">+ Add New Dish</button>
-            </div>
-            <div id="menuItemsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-        </div>
-
-        <!-- SECTION 5: TABLE QR CODE GENERATOR -->
-        <div id="qrSection" class="space-y-6 hidden">
-            <div class="pb-2 border-b border-stone-800">
-                <h2 class="text-lg font-black text-stone-100">📱 Table QR Code Generator</h2>
-                <p class="text-xs text-stone-400">Generate printable QR code stickers for Cafe Tables</p>
-            </div>
-            <div class="glass-panel p-6 rounded-3xl max-w-md mx-auto space-y-4 text-center">
-                <div>
-                    <label class="block text-xs font-bold text-stone-400 mb-1">Enter Table Number</label>
-                    <input type="number" id="qrTableNo" placeholder="1" value="1" class="w-full px-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-center text-amber-400 font-mono font-bold text-xl focus:outline-none focus:border-amber-500">
-                </div>
-                <button onclick="generateTableQR()" class="w-full py-3 bg-amber-500 text-stone-950 font-black text-xs uppercase rounded-xl shadow-lg">Generate QR Code ➔</button>
-
-                <div id="qrDisplayBox" class="pt-4 border-t border-stone-800/80 flex flex-col items-center gap-3 hidden">
-                    <div id="qrImageContainer" class="bg-white p-4 rounded-2xl shadow-xl"></div>
-                    <span id="qrTableLabel" class="font-black text-stone-200 text-sm">TABLE #1</span>
-                    <button onclick="printTableQR()" class="px-4 py-2 bg-stone-800 text-stone-200 font-bold text-xs rounded-xl border border-stone-700">🖨️ Print Sticker</button>
-                </div>
-            </div>
-        </div>
-
+  <!-- ============ ORDERS FILTER & CONTAINER ============ -->
+  <div>
+    <div class="flex items-center justify-between gap-3 mb-4">
+      <h2 class="font-serif text-xl font-bold">Kitchen Orders</h2>
+      <div class="flex gap-1.5 rounded-full border border-espresso-200 bg-white p-1 dark:border-white/10 dark:bg-espresso-900 text-xs font-semibold">
+        <button data-filter="active" class="filter-btn rounded-full px-3 py-1.5 transition bg-espresso-950 text-gold-300 dark:bg-gold-500 dark:text-espresso-950">Active</button>
+        <button data-filter="all" class="filter-btn rounded-full px-3 py-1.5 transition text-espresso-600 dark:text-espresso-300">All</button>
+        <button data-filter="completed" class="filter-btn rounded-full px-3 py-1.5 transition text-espresso-600 dark:text-espresso-300">Completed</button>
+      </div>
     </div>
 
-    <!-- PAYMENT & DISCOUNT MODAL -->
-    <div id="paymentModal" class="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="glass-panel bg-stone-900 border border-stone-800 w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
-            <div class="flex justify-between items-center border-b border-stone-800 pb-3">
-                <h3 class="font-black text-stone-100 text-base">Bill Settlement</h3>
-                <button onclick="closePaymentModal()" class="text-stone-400 font-bold">✕</button>
-            </div>
-            <input type="hidden" id="payOrderId">
-            <div class="space-y-3 text-xs">
-                <div class="flex justify-between font-mono text-stone-300">
-                    <span>Subtotal:</span>
-                    <span id="paySubtotal" class="font-bold">₹0</span>
-                </div>
-                <div>
-                    <label class="font-bold text-stone-400">Discount Amount (₹)</label>
-                    <input type="number" id="payDiscount" value="0" oninput="calculateFinalBill()" class="w-full mt-1 px-3 py-2 bg-stone-950 border border-stone-800 rounded-xl text-amber-400 font-mono font-bold">
-                </div>
-                <div>
-                    <label class="font-bold text-stone-400">GST Tax (%)</label>
-                    <input type="number" id="payTax" value="5" oninput="calculateFinalBill()" class="w-full mt-1 px-3 py-2 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 font-mono">
-                </div>
-                <div class="flex justify-between text-base font-black border-t border-stone-800 pt-2">
-                    <span class="text-stone-300">Final Bill Total:</span>
-                    <span id="payFinalTotal" class="text-emerald-400 font-mono">₹0</span>
-                </div>
-            </div>
-            <button onclick="confirmBillPaid()" class="w-full py-3 bg-emerald-500 text-stone-950 font-black text-xs uppercase rounded-xl shadow-lg">Confirm & Collect Payment 💳</button>
-        </div>
+    <!-- Orders Grid -->
+    <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+    <div id="emptyOrders" class="py-16 text-center">
+      <p class="text-4xl mb-2">☕</p>
+      <p class="font-serif text-lg font-semibold">No orders in queue</p>
+      <p class="text-xs text-espresso-500 dark:text-espresso-400">New customer orders will show up here automatically.</p>
     </div>
+  </div>
 
-    <!-- PREPARATION TIME MODAL -->
-    <div id="prepTimeModal" class="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="glass-panel bg-stone-900 border border-stone-800 w-full max-w-xs rounded-3xl p-5 text-center space-y-4">
-            <h3 class="font-black text-stone-100 text-sm">Select Preparation Time</h3>
-            <input type="hidden" id="prepOrderId">
-            <div class="grid grid-cols-3 gap-2 text-xs font-bold">
-                <button onclick="confirmPrepTime(10)" class="py-2.5 bg-stone-800 hover:bg-amber-500 hover:text-stone-950 text-amber-400 rounded-xl border border-stone-700">10 Mins</button>
-                <button onclick="confirmPrepTime(20)" class="py-2.5 bg-stone-800 hover:bg-amber-500 hover:text-stone-950 text-amber-400 rounded-xl border border-stone-700">20 Mins</button>
-                <button onclick="confirmPrepTime(30)" class="py-2.5 bg-stone-800 hover:bg-amber-500 hover:text-stone-950 text-amber-400 rounded-xl border border-stone-700">30 Mins</button>
+</main>
+
+<script>
+/* ---------- 1. FIREBASE CONFIG ---------- */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+};
+
+let db = null, dbAvailable = false;
+try {
+  if (firebaseConfig.databaseURL && !firebaseConfig.databaseURL.includes("YOUR_PROJECT")) {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    dbAvailable = true;
+  }
+} catch (e) { console.warn("[v0] Firebase init skipped:", e.message); }
+
+/* ---------- 2. STATE & SOUND ---------- */
+let soundEnabled = true;
+let currentFilter = "active";
+let rawOrders = {};
+let rawWaiters = {};
+
+let audioCtx = null;
+function playBell() {
+  if (!soundEnabled) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = "sine"; osc.frequency.setValueAtTime(1200, t);
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + 0.6);
+  } catch(e){}
+}
+
+/* ---------- 3. THEME ---------- */
+function applyTheme(theme) {
+  const dark = theme === "dark";
+  document.documentElement.classList.toggle("dark", dark);
+  document.getElementById("themeIcon").textContent = dark ? "☀️" : "🌙";
+  localStorage.setItem("dc_admin_theme", theme);
+}
+applyTheme(localStorage.getItem("dc_admin_theme") || "dark");
+document.getElementById("themeBtn").addEventListener("click", () =>
+  applyTheme(document.documentElement.classList.contains("dark") ? "light" : "dark"));
+
+document.getElementById("soundBtn").addEventListener("click", () => {
+  soundEnabled = !soundEnabled;
+  document.getElementById("soundIcon").textContent = soundEnabled ? "🔔" : "🔕";
+});
+
+/* ---------- 4. RENDER STATS & ORDERS ---------- */
+function rupee(n) { return "₹" + Math.round(n || 0).toLocaleString("en-IN"); }
+
+function renderDashboard() {
+  const ordersList = Object.entries(rawOrders).map(([key, value]) => ({ key, ...value }));
+  ordersList.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  // Stats
+  let totalRev = 0, activeCount = 0;
+  ordersList.forEach(o => {
+    if (o.status !== "cancelled") totalRev += (o.total || 0);
+    if (o.status === "received" || o.status === "preparing" || o.status === "ready") activeCount++;
+  });
+
+  document.getElementById("statRevenue").textContent = rupee(totalRev);
+  document.getElementById("statActive").textContent = activeCount;
+  document.getElementById("statTotal").textContent = ordersList.length;
+
+  // Filter Orders
+  const filtered = ordersList.filter(o => {
+    if (currentFilter === "active") return o.status === "received" || o.status === "preparing" || o.status === "ready";
+    if (currentFilter === "completed") return o.status === "completed" || o.status === "cancelled";
+    return true;
+  });
+
+  document.getElementById("emptyOrders").classList.toggle("hidden", filtered.length > 0);
+
+  const container = document.getElementById("ordersGrid");
+  container.innerHTML = filtered.map(o => {
+    const statusColors = {
+      received: "bg-blue-500/10 text-blue-600 border-blue-500/30",
+      preparing: "bg-amber-500/10 text-amber-600 border-amber-500/30",
+      ready: "bg-purple-500/10 text-purple-600 border-purple-500/30",
+      completed: "bg-green-500/10 text-green-600 border-green-500/30",
+      cancelled: "bg-red-500/10 text-red-600 border-red-500/30",
+    };
+
+    return `
+      <div class="rounded-2xl border border-espresso-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-espresso-900 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-3 border-b border-espresso-100 dark:border-white/10">
+            <div>
+              <span class="font-serif text-lg font-bold">#${o.orderId || "DC---"}</span>
+              <span class="ml-2 rounded-full border px-2 py-0.5 text-xs font-bold ${statusColors[o.status] || "bg-gray-100"}">
+                ${(o.status || "received").toUpperCase()}
+              </span>
             </div>
-            <button onclick="closePrepModal()" class="text-stone-400 font-bold text-xs">Cancel</button>
+            <span class="rounded-lg bg-espresso-950 px-3 py-1 font-bold text-gold-300 text-xs dark:bg-gold-500 dark:text-espresso-950">
+              Table ${o.tableNo || "1"}
+            </span>
+          </div>
+
+          <div class="py-2 text-xs text-espresso-500 dark:text-espresso-400 flex justify-between">
+            <span>👤 ${o.customer ? o.customer.name : "Guest"} (${o.customer ? o.customer.mobile : ""})</span>
+            <span>${o.type === "dinein" ? "🍽️ Dine-In" : "🥡 Takeaway"}</span>
+          </div>
+
+          <!-- Items -->
+          <div class="my-3 space-y-1.5 text-xs font-medium">
+            ${(o.items || []).map(it => `
+              <div class="flex justify-between">
+                <span><b class="text-gold-600 dark:text-gold-400">${it.qty}x</b> ${it.name} ${it.addons?.length ? `<i class="text-[10px] text-espresso-400">(${it.addons.join(", ")})</i>` : ""}</span>
+                <span>${rupee(it.lineTotal)}</span>
+              </div>
+            `).join("")}
+          </div>
+
+          ${o.notes ? `<p class="mb-3 rounded-lg bg-amber-500/10 p-2 text-xs font-semibold text-amber-700 dark:text-amber-300">🧑‍🍳 Note: "${o.notes}"</p>` : ""}
         </div>
-    </div>
 
-    <!-- ADD / EDIT DISH MODAL FORM -->
-    <div id="dishModal" class="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="glass-panel bg-stone-900 border border-stone-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
-            <div class="flex justify-between items-center border-b border-stone-800 pb-3">
-                <h3 id="modalDishTitle" class="font-black text-stone-100 text-base">Add New Dish</h3>
-                <button onclick="closeDishForm()" class="text-stone-400 font-bold text-sm">✕</button>
-            </div>
-            <input type="hidden" id="dishEditId">
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="font-bold text-stone-400">Dish Name</label>
-                    <input type="text" id="dishName" placeholder="e.g. Mocha Cold Coffee" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="font-bold text-stone-400">Category</label>
-                        <select id="dishCategory" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100">
-                            <option value="Coffee">Coffee</option>
-                            <option value="Pizza">Pizza</option>
-                            <option value="Burger">Burger</option>
-                            <option value="Dessert">Dessert</option>
-                            <option value="Snacks">Snacks</option>
-                            <option value="Beverages">Beverages</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="font-bold text-stone-400">Price (₹)</label>
-                        <input type="number" id="dishPrice" placeholder="180" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="font-bold text-stone-400">Type</label>
-                        <select id="dishVeg" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100">
-                            <option value="true">🟢 Veg</option>
-                            <option value="false">🔴 Non-Veg</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="font-bold text-stone-400">Tag Badge</label>
-                        <input type="text" id="dishTag" placeholder="e.g. BESTSELLER" class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100">
-                    </div>
-                </div>
-                <div>
-                    <label class="font-bold text-stone-400">Image URL</label>
-                    <input type="text" id="dishImg" placeholder="https://images.unsplash.com/..." class="w-full mt-1 px-3.5 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-stone-100">
-                </div>
-                <div>
-                    <label class="font-bold text-stone-400">Description</label>
-                    <textarea id="dishDesc" placeholder="Brief details about ingredients..." class="w-full mt-1 px-3.5 py-2 bg-stone-950 border border-stone-800 rounded-xl text-stone-100 h-16"></textarea>
-                </div>
-            </div>
-            <button onclick="saveDish()" class="w-full py-3 bg-amber-500 text-stone-950 font-black text-xs uppercase rounded-xl shadow-lg">Save Dish to Menu ➔</button>
+        <div>
+          <div class="flex justify-between items-center pt-3 border-t border-espresso-100 dark:border-white/10 mb-3">
+            <span class="text-xs font-semibold text-espresso-500">Total Bill</span>
+            <span class="font-serif text-lg font-bold text-gold-gradient">${rupee(o.total)}</span>
+          </div>
+
+          <!-- Actions -->
+          <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+            ${o.status === "received" ? `
+              <button onclick="updateStatus('${o.key}', 'preparing')" class="col-span-2 rounded-xl bg-amber-600 py-2.5 text-white hover:bg-amber-700">Start Preparing 🔥</button>
+            ` : ""}
+            ${o.status === "preparing" ? `
+              <button onclick="updateStatus('${o.key}', 'ready')" class="col-span-2 rounded-xl bg-purple-600 py-2.5 text-white hover:bg-purple-700">Mark Ready 🛎️</button>
+            ` : ""}
+            ${o.status === "ready" ? `
+              <button onclick="updateStatus('${o.key}', 'completed')" class="col-span-2 rounded-xl bg-green-600 py-2.5 text-white hover:bg-green-700">Complete & Clear ✅</button>
+            ` : ""}
+            ${o.status === "completed" || o.status === "cancelled" ? `
+              <span class="col-span-2 text-center py-2 text-espresso-400 italic">Order Finished</span>
+            ` : ""}
+          </div>
         </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ---------- 5. WAITER CALLS RENDER ---------- */
+function renderWaiters() {
+  const calls = Object.entries(rawWaiters).map(([key, val]) => ({ key, ...val }));
+  document.getElementById("statWaiter").textContent = calls.length;
+
+  const sec = document.getElementById("waiterCallsSection");
+  const list = document.getElementById("waiterCallsList");
+
+  if (calls.length === 0) {
+    sec.classList.add("hidden");
+    return;
+  }
+  sec.classList.remove("hidden");
+  list.innerHTML = calls.map(c => `
+    <div class="flex items-center gap-3 rounded-xl bg-white px-3 py-2 shadow-sm dark:bg-espresso-900 border border-red-200 dark:border-red-900">
+      <span class="font-bold text-sm">Table ${c.tableNo || "1"}</span>
+      <span class="text-xs text-espresso-500">${c.customer ? c.customer.name : ""}</span>
+      <button onclick="clearWaiterCall('${c.key}')" class="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-red-700">Attend ✓</button>
     </div>
-
-    <!-- JAVASCRIPT LOGIC -->
-    <script>
-        // FIREBASE CONFIG
-        const firebaseConfig = {
-            apiKey: "AIzaSyAeZq246X-z908x-Il0F-m86c1DaTXlgI4",
-            authDomain: "fir-cafe-bd31f.firebaseapp.com",
-            databaseURL: "https://fir-cafe-bd31f-default-rtdb.firebaseio.com",
-            projectId: "fir-cafe-bd31f",
-            storageBucket: "fir-cafe-bd31f.firebasestorage.app",
-            messagingSenderId: "277510970587",
-            appId: "1:277510970587:web:3836a5c62df85e26df00fe"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        // STATE
-        let audioCtx = null;
-        let currentFilter = 'ALL';
-        let historyFilter = 'ALL';
-        let rawOrdersData = null;
-        let rawMenuData = null;
-        let previousOrderKeysCount = 0;
-        let isFirstOrdersLoad = true;
-        let pendingAuthUser = null;
-        let currentSelectedSubtotal = 0;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            checkSavedSession();
-        });
-
-        // AUTH SYSTEM
-        function checkSavedSession() {
-            const savedSession = localStorage.getItem('demo_cafe_admin_session');
-            if (savedSession) {
-                showDashboard(JSON.parse(savedSession));
-            } else {
-                document.getElementById('authContainer').classList.remove('hidden');
-                document.getElementById('mainDashboard').classList.add('hidden');
-            }
-        }
-
-        async function handleStep1Submit(e) {
-            e.preventDefault();
-            const name = document.getElementById('authName').value.trim();
-            const mobile = document.getElementById('authMobile').value.trim();
-            const btn = document.getElementById('btnStep1');
-            btn.innerText = "Checking...";
-
-            try {
-                const snapshot = await db.ref(`admins/${mobile}`).once('value');
-                const userData = snapshot.val();
-                pendingAuthUser = { name, mobile };
-                document.getElementById('authStep1').classList.add('hidden');
-
-                if (userData) {
-                    pendingAuthUser.savedPin = userData.pin;
-                    pendingAuthUser.name = userData.name;
-                    document.getElementById('welcomeUserText').innerText = `Welcome back, ${userData.name}!`;
-                    document.getElementById('userMobileSubtext').innerText = `Mobile: +91 ${mobile}`;
-                    document.getElementById('authStep2Login').classList.remove('hidden');
-                } else {
-                    document.getElementById('authStep2Signup').classList.remove('hidden');
-                }
-            } catch (err) {
-                alert("Connection Error: " + err.message);
-            } finally {
-                btn.innerText = "Continue ➔";
-            }
-        }
-
-        function handleLoginSubmit(e) {
-            e.preventDefault();
-            if (document.getElementById('loginPin').value === pendingAuthUser.savedPin) {
-                saveAndInitSession(pendingAuthUser);
-            } else {
-                alert("Incorrect PIN!");
-            }
-        }
-
-        async function handleSignupSubmit(e) {
-            e.preventDefault();
-            const pin = document.getElementById('signupPin').value;
-            if (pin !== document.getElementById('signupConfirmPin').value) {
-                alert("PINs do not match!");
-                return;
-            }
-            const newUser = { name: pendingAuthUser.name, mobile: pendingAuthUser.mobile, pin, createdAt: new Date().toISOString() };
-            await db.ref(`admins/${pendingAuthUser.mobile}`).set(newUser);
-            saveAndInitSession(newUser);
-        }
-
-        function saveAndInitSession(user) {
-            localStorage.setItem('demo_cafe_admin_session', JSON.stringify(user));
-            document.getElementById('authContainer').classList.add('hidden');
-            showDashboard(user);
-        }
-
-        function resetAuthFlow() {
-            document.getElementById('authStep1').classList.remove('hidden');
-            document.getElementById('authStep2Login').classList.add('hidden');
-            document.getElementById('authStep2Signup').classList.add('hidden');
-        }
-
-        function logoutAdmin() {
-            if (confirm("Log out admin session?")) {
-                localStorage.removeItem('demo_cafe_admin_session');
-                location.reload();
-            }
-        }
-
-        function showDashboard(user) {
-            document.getElementById('mainDashboard').classList.remove('hidden');
-            document.getElementById('activeUserBadge').innerText = `Admin: ${user.name}`;
-            initFirebaseListeners();
-        }
-
-        // LISTENERS
-        function initFirebaseListeners() {
-            db.ref('orders').on('value', (snapshot) => {
-                rawOrdersData = snapshot.val();
-                renderOrdersData();
-                renderHistoryData();
-                renderAnalyticsData();
-
-                if (rawOrdersData) {
-                    const currentKeysCount = Object.keys(rawOrdersData).length;
-                    if (!isFirstOrdersLoad && currentKeysCount > previousOrderKeysCount) {
-                        playSirenSound();
-                    }
-                    previousOrderKeysCount = currentKeysCount;
-                }
-                isFirstOrdersLoad = false;
-            });
-
-            db.ref('menu').on('value', (snapshot) => {
-                rawMenuData = snapshot.val();
-                renderMenuItems();
-            });
-
-            db.ref('waiterCalls').on('value', (snapshot) => {
-                renderWaiterCalls(snapshot.val());
-            });
-        }
-
-        // AUDIO SIREN
-        function unlockAudio() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            document.getElementById('audioUnlockBanner').classList.add('hidden');
-        }
-
-        function testAlarm() { unlockAudio(); playSirenSound(); }
-
-        function playSirenSound() {
-            try {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.3);
-                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.5);
-            } catch (e) {}
-        }
-
-        // TAB NAVIGATION
-        function switchTab(tab) {
-            const btnActive = "px-3.5 py-2.5 bg-amber-500 text-stone-950 rounded-xl text-xs font-black shadow-lg transition-all";
-            const btnInactive = "px-3.5 py-2.5 bg-stone-900 border border-stone-800 text-stone-300 rounded-xl text-xs font-bold transition-all";
-
-            ['ordersSection', 'historySection', 'analyticsSection', 'menuSection', 'qrSection'].forEach(s => document.getElementById(s).classList.add('hidden'));
-            ['tabOrdersBtn', 'tabHistoryBtn', 'tabAnalyticsBtn', 'tabMenuBtn', 'tabQrBtn'].forEach(b => document.getElementById(b).className = btnInactive);
-
-            if (tab === 'orders') { document.getElementById('ordersSection').classList.remove('hidden'); document.getElementById('tabOrdersBtn').className = btnActive; }
-            if (tab === 'history') { document.getElementById('historySection').classList.remove('hidden'); document.getElementById('tabHistoryBtn').className = btnActive; }
-            if (tab === 'analytics') { document.getElementById('analyticsSection').classList.remove('hidden'); document.getElementById('tabAnalyticsBtn').className = btnActive; }
-            if (tab === 'menu') { document.getElementById('menuSection').classList.remove('hidden'); document.getElementById('tabMenuBtn').className = btnActive; }
-            if (tab === 'qr') { document.getElementById('qrSection').classList.remove('hidden'); document.getElementById('tabQrBtn').className = btnActive; }
-        }
-
-        function setFilter(filter) { currentFilter = filter; renderOrdersData(); }
-        function setHistoryFilter(filter) { historyFilter = filter; renderHistoryData(); }
-
-        function getShortOrderId(key, order) {
-            return (order && order.orderId) ? order.orderId : '#ORD-' + key.slice(-5).toUpperCase();
-        }
-
-        // RENDER LIVE ORDERS
-        function renderOrdersData() {
-            const grid = document.getElementById('ordersGrid');
-            const emptyState = document.getElementById('emptyOrdersState');
-            const searchVal = (document.getElementById('orderSearchInput')?.value || '').toLowerCase();
-            grid.innerHTML = '';
-
-            if (!rawOrdersData) {
-                updateStats(0, 0, 0, 0, 0, 0);
-                emptyState.classList.remove('hidden');
-                return;
-            }
-
-            let totalOrdersCount = 0, activeKitchenCount = 0, paidCount = 0, paidSales = 0, unpaidCount = 0, unpaidSales = 0, visibleCards = 0;
-            const keys = Object.keys(rawOrdersData).reverse();
-            totalOrdersCount = keys.length;
-
-            keys.forEach(key => {
-                const order = rawOrdersData[key];
-                const orderTotal = order.finalTotal || order.total || 0;
-                const isPaid = order.paymentStatus === 'PAID' || order.status === 'PAID';
-                const isKitchenActive = order.status === 'NEW ORDER' || order.status === 'PREPARING';
-
-                if (isPaid) { paidCount++; paidSales += orderTotal; } 
-                else { unpaidCount++; unpaidSales += orderTotal; }
-
-                if (isKitchenActive) activeKitchenCount++;
-
-                // Search Filter Matching
-                const shortId = getShortOrderId(key, order);
-                const matchesSearch = !searchVal || shortId.toLowerCase().includes(searchVal) || 
-                                     (order.tableNo + '').includes(searchVal) || 
-                                     (order.customerPhone || '').includes(searchVal);
-
-                if (isKitchenActive && matchesSearch) {
-                    if (currentFilter !== 'ALL' && order.status !== currentFilter) return;
-
-                    visibleCards++;
-                    const isNew = order.status === 'NEW ORDER';
-                    const cardBorder = isNew ? 'order-card-new border-amber-500' : 'border-stone-800/80';
-                    const statusBadge = isNew 
-                        ? `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2 py-0.5 rounded-md">NEW ORDER</span>`
-                        : `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/40 text-[10px] font-black px-2 py-0.5 rounded-md">PREPARING (${order.prepTime || '15'}m)</span>`;
-
-                    let itemsHtml = (order.items || []).map(i => `
-                        <li class="flex justify-between text-xs text-stone-300 font-semibold py-1 border-b border-stone-800/40">
-                            <span>${i.qty}x ${i.name}</span>
-                            <span class="font-mono text-stone-200">₹${i.price * i.qty}</span>
-                        </li>`).join('');
-
-                    const prepBtn = isNew
-                        ? `<button onclick="openPrepModal('${key}')" class="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl shadow">Start Prep 🍳</button>`
-                        : `<button onclick="updateOrderStatus('${key}', 'READY')" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow">Mark Ready 🍽️</button>`;
-
-                    grid.innerHTML += `
-                        <div class="glass-panel border ${cardBorder} p-4 rounded-3xl space-y-3 shadow-xl">
-                            <div class="flex justify-between items-center bg-stone-950/80 p-2.5 rounded-2xl border border-stone-800">
-                                <div>
-                                    <span class="font-mono text-amber-400 font-black text-xs block">${shortId}</span>
-                                    <span class="text-[10px] text-stone-400 font-mono">${order.time || ''}</span>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-[9px] text-stone-500 uppercase font-black block">Table Amount</span>
-                                    <span class="text-lg font-black text-emerald-400 font-mono">₹${orderTotal}</span>
-                                </div>
-                            </div>
-                            <div class="flex justify-between items-center border-b border-stone-800 pb-2">
-                                <span class="bg-amber-500 text-stone-950 font-black px-2.5 py-1 rounded-lg text-xs">TABLE #${order.tableNo}</span>
-                                ${statusBadge}
-                            </div>
-                            <div class="text-xs font-bold text-stone-300 flex justify-between">
-                                <span>👤 ${order.customerName || 'Guest'}</span>
-                                <span class="text-stone-500 font-mono text-[11px]">${order.customerPhone || ''}</span>
-                            </div>
-                            <ul class="space-y-0.5 max-h-36 overflow-y-auto no-scrollbar border-y border-stone-800/40 py-1">${itemsHtml}</ul>
-                            <div class="grid grid-cols-2 gap-1.5 pt-1">
-                                ${prepBtn}
-                                <button onclick="openPaymentModal('${key}', ${order.total || 0})" class="py-2 bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs rounded-xl shadow">Collect Bill 💳</button>
-                                <button onclick="printKOT('${key}')" class="col-span-2 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-xs rounded-xl border border-stone-700">🖨️ Print Kitchen KOT</button>
-                            </div>
-                        </div>`;
-                }
-            });
-
-            updateStats(totalOrdersCount, activeKitchenCount, paidSales, paidCount, unpaidSales, unpaidCount);
-            if (visibleCards === 0) emptyState.classList.remove('hidden'); else emptyState.classList.add('hidden');
-        }
-
-        // RENDER HISTORY & SALES
-        function renderHistoryData() {
-            const grid = document.getElementById('historyGrid');
-            const emptyState = document.getElementById('emptyHistoryState');
-            if (!grid) return;
-            grid.innerHTML = '';
-            if (!rawOrdersData) { emptyState.classList.remove('hidden'); return; }
-
-            const keys = Object.keys(rawOrdersData).reverse();
-            let count = 0;
-
-            keys.forEach(key => {
-                const order = rawOrdersData[key];
-                const isPaid = order.paymentStatus === 'PAID' || order.status === 'PAID';
-                if (historyFilter === 'PAID' && !isPaid) return;
-                if (historyFilter === 'UNPAID' && isPaid) return;
-
-                count++;
-                const shortId = getShortOrderId(key, order);
-                let itemsHtml = (order.items || []).map(i => `<li class="flex justify-between text-xs text-stone-300 font-semibold"><span>${i.qty}x ${i.name}</span><span class="font-mono text-stone-400">₹${i.price * i.qty}</span></li>`).join('');
-
-                grid.innerHTML += `
-                    <div class="glass-panel p-4 rounded-3xl space-y-3 border border-stone-800/80 shadow-md">
-                        <div class="flex justify-between items-center bg-stone-950/80 p-2.5 rounded-2xl border border-stone-800">
-                            <div>
-                                <span class="font-mono text-amber-400 font-black text-xs block">${shortId}</span>
-                                <span class="text-[10px] text-stone-400 font-mono">${order.time || ''}</span>
-                            </div>
-                            <span class="text-base font-black text-emerald-400 font-mono">₹${order.finalTotal || order.total || 0}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 font-black px-2.5 py-0.5 rounded-lg text-xs">TABLE #${order.tableNo}</span>
-                            <span class="${isPaid ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'} text-[10px] font-extrabold px-2 py-0.5 rounded-md border">${isPaid ? '🟢 PAID' : '🔴 UNPAID'}</span>
-                        </div>
-                        <ul class="space-y-0.5 max-h-28 overflow-y-auto no-scrollbar border-y border-stone-800/40 py-1">${itemsHtml}</ul>
-                        <div class="flex gap-2">
-                            <button onclick="printCustomerBill('${key}')" class="flex-1 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs rounded-xl border border-stone-700">🖨️ Print Bill</button>
-                            ${!isPaid ? `<button onclick="openPaymentModal('${key}', ${order.total || 0})" class="flex-1 py-1.5 bg-emerald-500 text-stone-950 font-black text-xs rounded-xl">Pay Bill 💳</button>` : ''}
-                        </div>
-                    </div>`;
-            });
-            if (count === 0) emptyState.classList.remove('hidden'); else emptyState.classList.add('hidden');
-        }
-
-        // RENDER BESTSELLER ANALYTICS
-        function renderAnalyticsData() {
-            const grid = document.getElementById('analyticsGrid');
-            if (!grid || !rawOrdersData) return;
-            grid.innerHTML = '';
-
-            const dishCounts = {};
-            Object.values(rawOrdersData).forEach(order => {
-                (order.items || []).forEach(item => {
-                    dishCounts[item.name] = (dishCounts[item.name] || 0) + (item.qty || 1);
-                });
-            });
-
-            const sortedDishes = Object.entries(dishCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
-
-            if (sortedDishes.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-stone-500 text-xs font-bold text-center py-8">No sales data available yet.</div>`;
-                return;
-            }
-
-            sortedDishes.forEach(([name, count], index) => {
-                grid.innerHTML += `
-                    <div class="glass-panel p-4 rounded-2xl border border-stone-800 flex justify-between items-center">
-                        <div>
-                            <span class="text-[10px] font-extrabold text-amber-500">RANK #${index + 1}</span>
-                            <h4 class="font-extrabold text-stone-100 text-sm mt-0.5">${name}</h4>
-                        </div>
-                        <span class="bg-amber-500/10 text-amber-400 font-mono font-black px-3 py-1 rounded-xl text-sm border border-amber-500/20">${count} Sold</span>
-                    </div>`;
-            });
-        }
-
-        function updateStats(totalCount, activeCount, paidSales, paidCount, unpaidSales, unpaidCount) {
-            document.getElementById('statTotalOrders').innerText = totalCount;
-            document.getElementById('statActiveCount').innerText = activeCount;
-            document.getElementById('statPaidSales').innerText = `₹${paidSales}`;
-            document.getElementById('statPaidCountSub').innerText = `${paidCount} Bills Paid`;
-            document.getElementById('statUnpaidSales').innerText = `₹${unpaidSales}`;
-            document.getElementById('statUnpaidCountSub').innerText = `${unpaidCount} Live Bills`;
-        }
-
-        // PREPARATION TIME SYSTEM
-        function openPrepModal(id) {
-            document.getElementById('prepOrderId').value = id;
-            document.getElementById('prepTimeModal').classList.remove('hidden');
-        }
-        function closePrepModal() { document.getElementById('prepTimeModal').classList.add('hidden'); }
-        function confirmPrepTime(mins) {
-            const id = document.getElementById('prepOrderId').value;
-            db.ref(`orders/${id}`).update({ status: 'PREPARING', prepTime: mins });
-            closePrepModal();
-        }
-
-        // PAYMENT & DISCOUNT SYSTEM
-        function openPaymentModal(id, total) {
-            document.getElementById('payOrderId').value = id;
-            currentSelectedSubtotal = total;
-            document.getElementById('paySubtotal').innerText = `₹${total}`;
-            document.getElementById('payDiscount').value = 0;
-            document.getElementById('payTax').value = 5;
-            calculateFinalBill();
-            document.getElementById('paymentModal').classList.remove('hidden');
-        }
-        function closePaymentModal() { document.getElementById('paymentModal').classList.add('hidden'); }
-        function calculateFinalBill() {
-            const discount = parseFloat(document.getElementById('payDiscount').value) || 0;
-            const taxPct = parseFloat(document.getElementById('payTax').value) || 0;
-            const discountedTotal = Math.max(0, currentSelectedSubtotal - discount);
-            const taxAmt = (discountedTotal * taxPct) / 100;
-            const finalBill = Math.round(discountedTotal + taxAmt);
-            document.getElementById('payFinalTotal').innerText = `₹${finalBill}`;
-        }
-        function confirmBillPaid() {
-            const id = document.getElementById('payOrderId').value;
-            const discount = parseFloat(document.getElementById('payDiscount').value) || 0;
-            const taxPct = parseFloat(document.getElementById('payTax').value) || 0;
-            const finalTotal = parseInt(document.getElementById('payFinalTotal').innerText.replace('₹', ''));
-
-            db.ref(`orders/${id}`).update({
-                paymentStatus: 'PAID',
-                status: 'PAID',
-                discount: discount,
-                taxPct: taxPct,
-                finalTotal: finalTotal
-            });
-            closePaymentModal();
-        }
-
-        // PRINTING SYSTEM (KOT & BILL)
-        function printKOT(id) {
-            const order = rawOrdersData[id];
-            if (!order) return;
-            const area = document.getElementById('printableArea');
-            area.innerHTML = `
-                <div style="text-align:center; font-weight:bold; font-size:16px;">=== KITCHEN ORDER TICKET (KOT) ===</div>
-                <div style="margin-top:10px;">ORDER: ${getShortOrderId(id, order)} | TABLE: #${order.tableNo}</div>
-                <div>TIME: ${order.time || ''}</div>
-                <hr style="margin:10px 0;">
-                <ul style="list-style:none; padding:0;">
-                    ${(order.items || []).map(i => `<li style="font-size:14px; font-weight:bold;">[ ] ${i.qty} x ${i.name}</li>`).join('')}
-                </ul>
-                <hr style="margin:10px 0;">
-                <div>INSTRUCTIONS: Prepare fast & hot!</div>
-            `;
-            window.print();
-        }
-
-        function printCustomerBill(id) {
-            const order = rawOrdersData[id];
-            if (!order) return;
-            const area = document.getElementById('printableArea');
-            area.innerHTML = `
-                <div style="text-align:center; font-weight:bold; font-size:18px;">DEMO CAFE</div>
-                <div style="text-align:center; font-size:11px;">Jaipur International Airport, Terminal 2</div>
-                <hr style="margin:10px 0;">
-                <div>ORDER: ${getShortOrderId(id, order)} | TABLE: #${order.tableNo}</div>
-                <div>DATE: ${order.time || new Date().toLocaleTimeString()}</div>
-                <div>GUEST: ${order.customerName || 'Guest'}</div>
-                <hr style="margin:10px 0;">
-                <table style="width:100%; text-align:left; font-size:12px;">
-                    ${(order.items || []).map(i => `<tr><td>${i.qty}x ${i.name}</td><td style="text-align:right;">₹${i.price * i.qty}</td></tr>`).join('')}
-                </table>
-                <hr style="margin:10px 0;">
-                <div style="display:flex; justify-content:space-between;"><span>Subtotal:</span><span>₹${order.total || 0}</span></div>
-                <div style="display:flex; justify-content:space-between;"><span>Discount:</span><span>-₹${order.discount || 0}</span></div>
-                <div style="display:flex; justify-content:space-between;"><span>GST (${order.taxPct || 5}%):</span><span>Included</span></div>
-                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; margin-top:5px;"><span>TOTAL:</span><span>₹${order.finalTotal || order.total || 0}</span></div>
-                <hr style="margin:10px 0;">
-                <div style="text-align:center; font-size:11px;">Thank You! Visit Again ☕</div>
-            `;
-            window.print();
-        }
-
-        // TABLE QR GENERATOR
-        function generateTableQR() {
-            const tableNo = document.getElementById('qrTableNo').value || '1';
-            const url = `https://democafe.web.app/?table=${tableNo}`;
-            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
-            
-            document.getElementById('qrImageContainer').innerHTML = `<img src="${qrApiUrl}" class="w-44 h-44">`;
-            document.getElementById('qrTableLabel').innerText = `TABLE #${tableNo}`;
-            document.getElementById('qrDisplayBox').classList.remove('hidden');
-        }
-
-        function printTableQR() {
-            const tableNo = document.getElementById('qrTableNo').value || '1';
-            const imgHtml = document.getElementById('qrImageContainer').innerHTML;
-            const area = document.getElementById('printableArea');
-            area.innerHTML = `
-                <div style="text-align:center; font-family:sans-serif; padding:20px;">
-                    <h2>SCAN TO ORDER</h2>
-                    <h1>TABLE #${tableNo}</h1>
-                    <div style="display:flex; justify-content:center; margin:15px 0;">${imgHtml}</div>
-                    <p>Demo Cafe Digital Menu</p>
-                </div>
-            `;
-            window.print();
-        }
-
-        function updateOrderStatus(id, newStatus) { db.ref(`orders/${id}`).update({ status: newStatus }); }
-
-        function renderWaiterCalls(data) {
-            const container = document.getElementById('waiterAlertsBox');
-            container.innerHTML = '';
-            if (!data) { document.getElementById('statWaiterCalls').innerText = "0"; container.classList.add('hidden'); return; }
-
-            const activeCalls = Object.keys(data).filter(k => data[k].status === 'ACTIVE');
-            document.getElementById('statWaiterCalls').innerText = activeCalls.length;
-            if (activeCalls.length === 0) { container.classList.add('hidden'); return; }
-
-            container.classList.remove('hidden');
-            activeCalls.forEach(k => {
-                container.innerHTML += `
-                    <div class="bg-red-500/10 border border-red-500/30 p-3 rounded-2xl flex justify-between items-center text-xs text-red-300 animate-pulse">
-                        <div class="flex items-center gap-2 font-bold">
-                            <span>🔔</span><span>WAITER NEEDED AT TABLE #${data[k].tableNo}</span>
-                        </div>
-                        <button onclick="dismissWaiterCall('${k}')" class="px-3 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black">Acknowledge</button>
-                    </div>`;
-            });
-        }
-        function dismissWaiterCall(id) { db.ref(`waiterCalls/${id}`).update({ status: 'RESOLVED' }); }
-
-        // MANAGE MENU DISHES
-        function renderMenuItems() {
-            const grid = document.getElementById('menuItemsGrid');
-            grid.innerHTML = '';
-            if (!rawMenuData) { grid.innerHTML = `<div class="col-span-full text-center py-12 text-stone-500 text-xs font-bold">No dishes in menu.</div>`; return; }
-
-            Object.keys(rawMenuData).forEach(id => {
-                const dish = rawMenuData[id];
-                const isAvail = dish.available !== false;
-                grid.innerHTML += `
-                    <div class="glass-panel p-4 rounded-3xl space-y-3 border border-stone-800 flex flex-col justify-between">
-                        <div class="space-y-2">
-                            <div class="flex justify-between items-start gap-2">
-                                <img src="${dish.image || 'https://images.unsplash.com/photo-1541167760496-1628856ab772?w=300'}" class="w-16 h-16 rounded-2xl object-cover bg-stone-950 border border-stone-800">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-1.5"><span class="text-xs">${dish.isVeg ? '🟢' : '🔴'}</span><h4 class="font-extrabold text-stone-100 text-sm">${dish.name}</h4></div>
-                                    <span class="text-[10px] font-bold text-amber-500">${dish.category || 'General'}</span>
-                                </div>
-                                <span class="font-black text-emerald-400 font-mono text-sm">₹${dish.price}</span>
-                            </div>
-                            <p class="text-[11px] text-stone-400 line-clamp-2">${dish.desc || ''}</p>
-                        </div>
-                        <div class="flex items-center justify-between pt-2 border-t border-stone-800 text-xs">
-                            <button onclick="toggleAvailability('${id}', ${!isAvail})" class="px-3 py-1 rounded-xl text-[10px] font-extrabold border ${isAvail ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}">${isAvail ? 'In Stock ✔' : 'Out of Stock ✖'}</button>
-                            <div class="flex gap-1.5">
-                                <button onclick="editDish('${id}')" class="px-2.5 py-1 bg-stone-800 text-stone-200 rounded-lg text-xs font-bold">Edit</button>
-                                <button onclick="deleteDish('${id}')" class="px-2.5 py-1 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold">Delete</button>
-                            </div>
-                        </div>
-                    </div>`;
-            });
-        }
-
-        function openDishForm() {
-            ['dishEditId', 'dishName', 'dishPrice', 'dishTag', 'dishImg', 'dishDesc'].forEach(i => document.getElementById(i).value = '');
-            document.getElementById('dishCategory').value = 'Coffee';
-            document.getElementById('modalDishTitle').innerText = 'Add New Dish';
-            document.getElementById('dishModal').classList.remove('hidden');
-        }
-        function closeDishForm() { document.getElementById('dishModal').classList.add('hidden'); }
-
-        function editDish(id) {
-            const dish = rawMenuData[id];
-            if (!dish) return;
-            document.getElementById('dishEditId').value = id;
-            document.getElementById('dishName').value = dish.name || '';
-            document.getElementById('dishCategory').value = dish.category || 'Coffee';
-            document.getElementById('dishPrice').value = dish.price || '';
-            document.getElementById('dishVeg').value = dish.isVeg ? 'true' : 'false';
-            document.getElementById('dishTag').value = dish.tag || '';
-            document.getElementById('dishImg').value = dish.image || '';
-            document.getElementById('dishDesc').value = dish.desc || '';
-            document.getElementById('modalDishTitle').innerText = 'Edit Dish Details';
-            document.getElementById('dishModal').classList.remove('hidden');
-        }
-
-        function saveDish() {
-            const id = document.getElementById('dishEditId').value;
-            const name = document.getElementById('dishName').value.trim();
-            const category = document.getElementById('dishCategory').value;
-            const price = parseFloat(document.getElementById('dishPrice').value);
-            const isVeg = document.getElementById('dishVeg').value === 'true';
-            const tag = document.getElementById('dishTag').value.trim();
-            const image = document.getElementById('dishImg').value.trim();
-            const desc = document.getElementById('dishDesc').value.trim();
-
-            if (!name || isNaN(price)) { alert("Please fill in Dish Name and Price properly."); return; }
-            const payload = { name, category, price, isVeg, tag, image, desc, available: true };
-
-            if (id) db.ref(`menu/${id}`).update(payload); else db.ref('menu').push(payload);
-            closeDishForm();
-        }
-
-        function toggleAvailability(id, status) { db.ref(`menu/${id}`).update({ available: status }); }
-        function deleteDish(id) { if (confirm("Remove item?")) db.ref(`menu/${id}`).remove(); }
-    </script>
+  `).join("");
+}
+
+/* ---------- 6. FIREBASE REALTIME LISTENERS ---------- */
+function updateStatus(orderKey, newStatus) {
+  if (dbAvailable) {
+    db.ref("orders/" + orderKey).update({ status: newStatus });
+  } else {
+    if (rawOrders[orderKey]) rawOrders[orderKey].status = newStatus;
+    renderDashboard();
+  }
+}
+
+function clearWaiterCall(callKey) {
+  if (dbAvailable) {
+    db.ref("waiterCalls/" + callKey).remove();
+  } else {
+    delete rawWaiters[callKey];
+    renderWaiters();
+  }
+}
+
+function initFirebase() {
+  if (!dbAvailable) {
+    console.warn("[Admin] Running in local demo mode. Connect Firebase credentials.");
+    return;
+  }
+
+  // Listen for Orders
+  db.ref("orders").on("value", (snap) => {
+    const data = snap.val() || {};
+    const oldKeys = Object.keys(rawOrders);
+    const newKeys = Object.keys(data);
+    if (newKeys.length > oldKeys.length) playBell();
+    rawOrders = data;
+    renderDashboard();
+  });
+
+  // Listen for Waiter Calls
+  db.ref("waiterCalls").on("value", (snap) => {
+    const data = snap.val() || {};
+    const oldKeys = Object.keys(rawWaiters);
+    const newKeys = Object.keys(data);
+    if (newKeys.length > oldKeys.length) playBell();
+    rawWaiters = data;
+    renderWaiters();
+  });
+}
+
+// Filter button handlers
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter-btn").forEach(b => {
+      b.className = "filter-btn rounded-full px-3 py-1.5 transition text-espresso-600 dark:text-espresso-300";
+    });
+    btn.className = "filter-btn rounded-full px-3 py-1.5 transition bg-espresso-950 text-gold-300 dark:bg-gold-500 dark:text-espresso-950";
+    currentFilter = btn.dataset.filter;
+    renderDashboard();
+  });
+});
+
+initFirebase();
+</script>
 </body>
 </html>
 
