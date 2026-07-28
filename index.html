@@ -1,386 +1,157 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="theme-color" content="#1c130d" />
-<title>Demo Cafe — Admin & Kitchen Dashboard</title>
 
-<!-- Tailwind CSS -->
-<script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
 
-<!-- Firebase Compat SDK v9.22.1 -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<title>Demo Cafe Admin Panel</title>
 
-<script>
-  tailwind.config = {
-    darkMode: 'class',
-    theme: {
-      extend: {
-        fontFamily: {
-          serif: ['"Playfair Display"', 'serif'],
-          sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        },
-        colors: {
-          espresso: {
-            50: '#faf6f1', 100: '#f3e9dd', 200: '#e6d0b8', 300: '#d6b189',
-            400: '#c4905d', 500: '#b6773f', 600: '#a06134', 700: '#814b2d',
-            800: '#6a3e2a', 900: '#573424', 950: '#2e1a11',
-          },
-          gold: {
-            300: '#f2d59a', 400: '#e9c273', 500: '#d9a94e', 600: '#c08e35',
-          },
-        },
-      },
-    },
-  };
-</script>
+<link rel="stylesheet" href="style.css">
 
-<style>
-  :root { color-scheme: light; }
-  html.dark { color-scheme: dark; }
-  body { -webkit-tap-highlight-color: transparent; }
-
-  .text-gold-gradient {
-    background: linear-gradient(100deg, #c08e35 0%, #f2d59a 45%, #e9c273 60%, #c08e35 100%);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent; color: transparent;
-  }
-  .glass {
-    backdrop-filter: saturate(160%) blur(16px);
-    -webkit-backdrop-filter: saturate(160%) blur(16px);
-  }
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
 </head>
 
-<body class="bg-espresso-50 text-espresso-950 dark:bg-espresso-950 dark:text-espresso-50 font-sans antialiased transition-colors duration-300 min-h-screen pb-20">
 
-<!-- ============ HEADER ============ -->
-<header class="glass sticky top-0 z-40 border-b border-espresso-200/60 bg-espresso-50/80 dark:border-white/10 dark:bg-espresso-950/80">
-  <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
-    <div class="flex items-center gap-3">
-      <div class="flex size-10 items-center justify-center rounded-xl bg-espresso-950 text-gold-400 ring-1 ring-gold-500/40 dark:bg-espresso-900">
-        <span class="font-serif text-lg font-bold">D</span>
-      </div>
-      <div>
-        <h1 class="font-serif text-lg font-bold text-gold-gradient">Demo Cafe Admin</h1>
-        <p class="text-[11px] font-medium text-espresso-500 dark:text-espresso-300">Live Kitchen & Manager Portal</p>
-      </div>
-    </div>
+<body>
 
-    <div class="flex items-center gap-2">
-      <!-- Mute/Sound toggle -->
-      <button id="soundBtn" class="flex h-9 items-center gap-1.5 rounded-full border border-espresso-300/70 bg-white/70 px-3 text-xs font-semibold dark:border-white/10 dark:bg-white/5">
-        <span id="soundIcon">🔔</span> Sound ON
-      </button>
-      <!-- Theme toggle -->
-      <button id="themeBtn" class="grid size-9 place-items-center rounded-full border border-espresso-300/70 bg-white/70 text-base dark:border-white/10 dark:bg-white/5">
-        <span id="themeIcon">🌙</span>
-      </button>
-    </div>
-  </div>
+
+<header class="admin-header">
+
+<div class="logo">
+☕ Demo Cafe Admin
+</div>
+
+
+<div class="admin-info">
+
+<span>
+Live Dashboard
+</span>
+
+</div>
+
 </header>
 
-<main class="mx-auto max-w-7xl px-4 pt-6 space-y-6">
 
-  <!-- ============ STATS BAR ============ -->
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-    <div class="rounded-2xl border border-espresso-200 bg-white p-4 dark:border-white/10 dark:bg-espresso-900">
-      <p class="text-xs font-semibold text-espresso-500 dark:text-espresso-400">Total Revenue</p>
-      <h3 id="statRevenue" class="font-serif text-2xl font-bold text-gold-gradient mt-1">₹0</h3>
-    </div>
-    <div class="rounded-2xl border border-espresso-200 bg-white p-4 dark:border-white/10 dark:bg-espresso-900">
-      <p class="text-xs font-semibold text-espresso-500 dark:text-espresso-400">Active Orders</p>
-      <h3 id="statActive" class="font-serif text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">0</h3>
-    </div>
-    <div class="rounded-2xl border border-espresso-200 bg-white p-4 dark:border-white/10 dark:bg-espresso-900">
-      <p class="text-xs font-semibold text-espresso-500 dark:text-espresso-400">Total Orders Today</p>
-      <h3 id="statTotal" class="font-serif text-2xl font-bold mt-1">0</h3>
-    </div>
-    <div class="rounded-2xl border border-espresso-200 bg-white p-4 dark:border-white/10 dark:bg-espresso-900">
-      <p class="text-xs font-semibold text-espresso-500 dark:text-espresso-400">Pending Waiter Calls</p>
-      <h3 id="statWaiter" class="font-serif text-2xl font-bold text-red-600 dark:text-red-400 mt-1">0</h3>
-    </div>
-  </div>
 
-  <!-- ============ WAITER CALLS ALERT SECTION ============ -->
-  <div id="waiterCallsSection" class="hidden rounded-2xl border border-red-500/40 bg-red-500/10 p-4">
-    <div class="flex items-center gap-2 mb-3 text-red-700 dark:text-red-400 font-bold text-sm">
-      <span class="animate-bounce">🛎️</span> Waiter Assistance Requested
-    </div>
-    <div id="waiterCallsList" class="flex flex-wrap gap-2"></div>
-  </div>
 
-  <!-- ============ ORDERS FILTER & CONTAINER ============ -->
-  <div>
-    <div class="flex items-center justify-between gap-3 mb-4">
-      <h2 class="font-serif text-xl font-bold">Kitchen Orders</h2>
-      <div class="flex gap-1.5 rounded-full border border-espresso-200 bg-white p-1 dark:border-white/10 dark:bg-espresso-900 text-xs font-semibold">
-        <button data-filter="active" class="filter-btn rounded-full px-3 py-1.5 transition bg-espresso-950 text-gold-300 dark:bg-gold-500 dark:text-espresso-950">Active</button>
-        <button data-filter="all" class="filter-btn rounded-full px-3 py-1.5 transition text-espresso-600 dark:text-espresso-300">All</button>
-        <button data-filter="completed" class="filter-btn rounded-full px-3 py-1.5 transition text-espresso-600 dark:text-espresso-300">Completed</button>
-      </div>
-    </div>
 
-    <!-- Orders Grid -->
-    <div id="ordersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+<main class="dashboard">
 
-    <div id="emptyOrders" class="py-16 text-center">
-      <p class="text-4xl mb-2">☕</p>
-      <p class="font-serif text-lg font-semibold">No orders in queue</p>
-      <p class="text-xs text-espresso-500 dark:text-espresso-400">New customer orders will show up here automatically.</p>
-    </div>
-  </div>
+
+<section class="stats">
+
+
+<div class="stat-card">
+
+<h3>
+Total Orders
+</h3>
+
+<p id="totalOrders">
+0
+</p>
+
+</div>
+
+
+
+<div class="stat-card">
+
+<h3>
+Pending
+</h3>
+
+<p id="pendingOrders">
+0
+</p>
+
+</div>
+
+
+
+
+<div class="stat-card">
+
+<h3>
+Today's Sale
+</h3>
+
+<p id="todaySale">
+₹0
+</p>
+
+</div>
+
+
+
+</section>
+
+
+
+
+
+
+
+
+<section class="orders-section">
+
+
+<div class="section-head">
+
+<h2>
+📋 Live Orders
+</h2>
+
+
+<button onclick="refreshOrders()">
+Refresh
+</button>
+
+
+</div>
+
+
+
+
+
+<div id="ordersContainer">
+
+
+<div class="empty-box">
+
+Waiting for orders...
+
+</div>
+
+
+</div>
+
+
+
+</section>
+
+
 
 </main>
 
-<script>
-/* ---------- 1. FIREBASE CONFIG ---------- */
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
-};
 
-let db = null, dbAvailable = false;
-try {
-  if (firebaseConfig.databaseURL && !firebaseConfig.databaseURL.includes("YOUR_PROJECT")) {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
-    dbAvailable = true;
-  }
-} catch (e) { console.warn("[v0] Firebase init skipped:", e.message); }
 
-/* ---------- 2. STATE & SOUND ---------- */
-let soundEnabled = true;
-let currentFilter = "active";
-let rawOrders = {};
-let rawWaiters = {};
 
-let audioCtx = null;
-function playBell() {
-  if (!soundEnabled) return;
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
-    const t = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-    osc.type = "sine"; osc.frequency.setValueAtTime(1200, t);
-    gain.gain.setValueAtTime(0.2, t);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(t); osc.stop(t + 0.6);
-  } catch(e){}
-}
 
-/* ---------- 3. THEME ---------- */
-function applyTheme(theme) {
-  const dark = theme === "dark";
-  document.documentElement.classList.toggle("dark", dark);
-  document.getElementById("themeIcon").textContent = dark ? "☀️" : "🌙";
-  localStorage.setItem("dc_admin_theme", theme);
-}
-applyTheme(localStorage.getItem("dc_admin_theme") || "dark");
-document.getElementById("themeBtn").addEventListener("click", () =>
-  applyTheme(document.documentElement.classList.contains("dark") ? "light" : "dark"));
 
-document.getElementById("soundBtn").addEventListener("click", () => {
-  soundEnabled = !soundEnabled;
-  document.getElementById("soundIcon").textContent = soundEnabled ? "🔔" : "🔕";
-});
 
-/* ---------- 4. RENDER STATS & ORDERS ---------- */
-function rupee(n) { return "₹" + Math.round(n || 0).toLocaleString("en-IN"); }
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 
-function renderDashboard() {
-  const ordersList = Object.entries(rawOrders).map(([key, value]) => ({ key, ...value }));
-  ordersList.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
-  // Stats
-  let totalRev = 0, activeCount = 0;
-  ordersList.forEach(o => {
-    if (o.status !== "cancelled") totalRev += (o.total || 0);
-    if (o.status === "received" || o.status === "preparing" || o.status === "ready") activeCount++;
-  });
 
-  document.getElementById("statRevenue").textContent = rupee(totalRev);
-  document.getElementById("statActive").textContent = activeCount;
-  document.getElementById("statTotal").textContent = ordersList.length;
+<script src="admin.js"></script>
 
-  // Filter Orders
-  const filtered = ordersList.filter(o => {
-    if (currentFilter === "active") return o.status === "received" || o.status === "preparing" || o.status === "ready";
-    if (currentFilter === "completed") return o.status === "completed" || o.status === "cancelled";
-    return true;
-  });
 
-  document.getElementById("emptyOrders").classList.toggle("hidden", filtered.length > 0);
 
-  const container = document.getElementById("ordersGrid");
-  container.innerHTML = filtered.map(o => {
-    const statusColors = {
-      received: "bg-blue-500/10 text-blue-600 border-blue-500/30",
-      preparing: "bg-amber-500/10 text-amber-600 border-amber-500/30",
-      ready: "bg-purple-500/10 text-purple-600 border-purple-500/30",
-      completed: "bg-green-500/10 text-green-600 border-green-500/30",
-      cancelled: "bg-red-500/10 text-red-600 border-red-500/30",
-    };
-
-    return `
-      <div class="rounded-2xl border border-espresso-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-espresso-900 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between pb-3 border-b border-espresso-100 dark:border-white/10">
-            <div>
-              <span class="font-serif text-lg font-bold">#${o.orderId || "DC---"}</span>
-              <span class="ml-2 rounded-full border px-2 py-0.5 text-xs font-bold ${statusColors[o.status] || "bg-gray-100"}">
-                ${(o.status || "received").toUpperCase()}
-              </span>
-            </div>
-            <span class="rounded-lg bg-espresso-950 px-3 py-1 font-bold text-gold-300 text-xs dark:bg-gold-500 dark:text-espresso-950">
-              Table ${o.tableNo || "1"}
-            </span>
-          </div>
-
-          <div class="py-2 text-xs text-espresso-500 dark:text-espresso-400 flex justify-between">
-            <span>👤 ${o.customer ? o.customer.name : "Guest"} (${o.customer ? o.customer.mobile : ""})</span>
-            <span>${o.type === "dinein" ? "🍽️ Dine-In" : "🥡 Takeaway"}</span>
-          </div>
-
-          <!-- Items -->
-          <div class="my-3 space-y-1.5 text-xs font-medium">
-            ${(o.items || []).map(it => `
-              <div class="flex justify-between">
-                <span><b class="text-gold-600 dark:text-gold-400">${it.qty}x</b> ${it.name} ${it.addons?.length ? `<i class="text-[10px] text-espresso-400">(${it.addons.join(", ")})</i>` : ""}</span>
-                <span>${rupee(it.lineTotal)}</span>
-              </div>
-            `).join("")}
-          </div>
-
-          ${o.notes ? `<p class="mb-3 rounded-lg bg-amber-500/10 p-2 text-xs font-semibold text-amber-700 dark:text-amber-300">🧑‍🍳 Note: "${o.notes}"</p>` : ""}
-        </div>
-
-        <div>
-          <div class="flex justify-between items-center pt-3 border-t border-espresso-100 dark:border-white/10 mb-3">
-            <span class="text-xs font-semibold text-espresso-500">Total Bill</span>
-            <span class="font-serif text-lg font-bold text-gold-gradient">${rupee(o.total)}</span>
-          </div>
-
-          <!-- Actions -->
-          <div class="grid grid-cols-2 gap-2 text-xs font-bold">
-            ${o.status === "received" ? `
-              <button onclick="updateStatus('${o.key}', 'preparing')" class="col-span-2 rounded-xl bg-amber-600 py-2.5 text-white hover:bg-amber-700">Start Preparing 🔥</button>
-            ` : ""}
-            ${o.status === "preparing" ? `
-              <button onclick="updateStatus('${o.key}', 'ready')" class="col-span-2 rounded-xl bg-purple-600 py-2.5 text-white hover:bg-purple-700">Mark Ready 🛎️</button>
-            ` : ""}
-            ${o.status === "ready" ? `
-              <button onclick="updateStatus('${o.key}', 'completed')" class="col-span-2 rounded-xl bg-green-600 py-2.5 text-white hover:bg-green-700">Complete & Clear ✅</button>
-            ` : ""}
-            ${o.status === "completed" || o.status === "cancelled" ? `
-              <span class="col-span-2 text-center py-2 text-espresso-400 italic">Order Finished</span>
-            ` : ""}
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-/* ---------- 5. WAITER CALLS RENDER ---------- */
-function renderWaiters() {
-  const calls = Object.entries(rawWaiters).map(([key, val]) => ({ key, ...val }));
-  document.getElementById("statWaiter").textContent = calls.length;
-
-  const sec = document.getElementById("waiterCallsSection");
-  const list = document.getElementById("waiterCallsList");
-
-  if (calls.length === 0) {
-    sec.classList.add("hidden");
-    return;
-  }
-  sec.classList.remove("hidden");
-  list.innerHTML = calls.map(c => `
-    <div class="flex items-center gap-3 rounded-xl bg-white px-3 py-2 shadow-sm dark:bg-espresso-900 border border-red-200 dark:border-red-900">
-      <span class="font-bold text-sm">Table ${c.tableNo || "1"}</span>
-      <span class="text-xs text-espresso-500">${c.customer ? c.customer.name : ""}</span>
-      <button onclick="clearWaiterCall('${c.key}')" class="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-red-700">Attend ✓</button>
-    </div>
-  `).join("");
-}
-
-/* ---------- 6. FIREBASE REALTIME LISTENERS ---------- */
-function updateStatus(orderKey, newStatus) {
-  if (dbAvailable) {
-    db.ref("orders/" + orderKey).update({ status: newStatus });
-  } else {
-    if (rawOrders[orderKey]) rawOrders[orderKey].status = newStatus;
-    renderDashboard();
-  }
-}
-
-function clearWaiterCall(callKey) {
-  if (dbAvailable) {
-    db.ref("waiterCalls/" + callKey).remove();
-  } else {
-    delete rawWaiters[callKey];
-    renderWaiters();
-  }
-}
-
-function initFirebase() {
-  if (!dbAvailable) {
-    console.warn("[Admin] Running in local demo mode. Connect Firebase credentials.");
-    return;
-  }
-
-  // Listen for Orders
-  db.ref("orders").on("value", (snap) => {
-    const data = snap.val() || {};
-    const oldKeys = Object.keys(rawOrders);
-    const newKeys = Object.keys(data);
-    if (newKeys.length > oldKeys.length) playBell();
-    rawOrders = data;
-    renderDashboard();
-  });
-
-  // Listen for Waiter Calls
-  db.ref("waiterCalls").on("value", (snap) => {
-    const data = snap.val() || {};
-    const oldKeys = Object.keys(rawWaiters);
-    const newKeys = Object.keys(data);
-    if (newKeys.length > oldKeys.length) playBell();
-    rawWaiters = data;
-    renderWaiters();
-  });
-}
-
-// Filter button handlers
-document.querySelectorAll(".filter-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".filter-btn").forEach(b => {
-      b.className = "filter-btn rounded-full px-3 py-1.5 transition text-espresso-600 dark:text-espresso-300";
-    });
-    btn.className = "filter-btn rounded-full px-3 py-1.5 transition bg-espresso-950 text-gold-300 dark:bg-gold-500 dark:text-espresso-950";
-    currentFilter = btn.dataset.filter;
-    renderDashboard();
-  });
-});
-
-initFirebase();
-</script>
 </body>
+
 </html>
-
-
